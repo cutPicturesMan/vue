@@ -102,6 +102,11 @@ export default class Watcher {
     let value
     const vm = this.vm
     try {
+      // 获取$watch监听的路径a.b.c的值
+      // Q 这里为什么要用call？
+      // 为了针对getter为Function的情况，当Function中return this.a + this.b时，需要绑定this
+      // Q 这里为什么要用try...catch包裹？
+      // 当getter为Function时，return this.a.b，这时vm上如果没有a.b，则会报错
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
