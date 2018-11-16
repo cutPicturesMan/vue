@@ -45,6 +45,9 @@ export class Observer {
     this.vmCount = 0
     def(value, '__ob__', this)
     if (Array.isArray(value)) {
+      // 判断是否可以通过浏览器内置属性__proto__进行继承
+      // 如果可以，则修改value的__proto__，指向重写了7个内置方法的数组
+      // 如果不行，则将重写的7个内置方法赋值给数组value
       const augment = hasProto
         ? protoAugment
         : copyAugment
