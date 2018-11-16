@@ -47,7 +47,9 @@ export class Observer {
     if (Array.isArray(value)) {
       // 判断是否可以通过浏览器内置属性__proto__进行继承
       // 如果可以，则修改value的__proto__，指向重写了7个内置方法的数组
+      // 这么做的好处是所有的value的原型，都指向同一个重写内置方法的数组
       // 如果不行，则将重写的7个内置方法赋值给数组value
+      // 这样每次都要生成7个内置方法，很冗余
       const augment = hasProto
         ? protoAugment
         : copyAugment
@@ -110,6 +112,8 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * or the existing observer if the value already has one.
  */
 export function observe (value: any, asRootData: ?boolean): Observer | void {
+  // 只能是对象或者数组，才会执行本函数
+  // 即解析到最后，是基本类型值，就不再observe了
   if (!isObject(value) || value instanceof VNode) {
     return
   }
@@ -144,11 +148,13 @@ export function defineReactive (
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
+  // 如果该属性的特性无法配置（get、set），那么无法监听
   if (property && property.configurable === false) {
     return
   }
 
   // cater for pre-defined getter/setters
+  // Q 访问器属性和数据属性的区别？
   const getter = property && property.get
   const setter = property && property.set
   if ((!getter || setter) && arguments.length === 2) {

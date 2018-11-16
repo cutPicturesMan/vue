@@ -28,6 +28,7 @@ methodsToPatch.forEach(function (method) {
     const result = original.apply(this, args)
     const ob = this.__ob__
     let inserted
+    // 对新增加的参数，进行observe
     switch (method) {
       case 'push':
       case 'unshift':
@@ -40,6 +41,7 @@ methodsToPatch.forEach(function (method) {
     if (inserted) ob.observeArray(inserted)
     // notify change
     ob.dep.notify()
+    // 部分内置方法有返回值，这里要返回
     return result
   })
 })
