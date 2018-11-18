@@ -68,6 +68,8 @@ export class Observer {
   walk (obj: Object) {
     const keys = Object.keys(obj)
     for (let i = 0; i < keys.length; i++) {
+      // #7280 https://github.com/vuejs/vue/pull/7280
+      // defineReactive(obj, keys[i], obj(keys[i]))
       defineReactive(obj, keys[i])
     }
   }
@@ -113,7 +115,6 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  */
 export function observe (value: any, asRootData: ?boolean): Observer | void {
   // 只能是对象或者数组，才会执行本函数
-  // 即解析到最后，是基本类型值，就不再observe了
   if (!isObject(value) || value instanceof VNode) {
     return
   }
@@ -155,8 +156,14 @@ export function defineReactive (
 
   // cater for pre-defined getter/setters
   // Q 访问器属性和数据属性的区别？
+  // A 访问器属性带有非必需的get和set，数据属性即键值对
   const getter = property && property.get
   const setter = property && property.set
+  // #7280 https://github.com/vuejs/vue/pull/7280
+  // #7302 https://github.com/vuejs/vue/pull/7302
+  // 在初始化observe的时候，如果该属性定义了getter，则不执行getter函数。如果没有定义getter，则直接赋值
+  // #7828 https://github.com/vuejs/vue/pull/7828
+  // 如果初始化的时候，setter函数已经定义了，则执行getter函数
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }
