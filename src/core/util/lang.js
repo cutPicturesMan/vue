@@ -29,8 +29,9 @@ export function parsePath (path: string): any {
   if (bailRE.test(path)) {
     return
   }
+  // 'a.b.c' => ['a', 'b', 'c']
   const segments = path.split('.')
-  // 返回obj.a.b.c的值
+  // 传入的对象obj必须包含segments的完整属性路径，否则返回undefined
   return function (obj) {
     for (let i = 0; i < segments.length; i++) {
       if (!obj) return

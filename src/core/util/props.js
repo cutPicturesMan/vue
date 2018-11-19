@@ -192,7 +192,8 @@ function assertType (value: any, type: Function): {
  * across different vms / iframes.
  */
 // 用来获取内置类型
-// 由于每个frame都有各自的Array构造函数，因此一个frame中的实例在另外一个frame中不会被识别，因此仅用instanceof Array无法正确判断是否是数组。调用数组的内置toString()方法在所有浏览器都会返回"[object Array]"，可以用来检测是否是数组
+// 由于每个frame都有各自的Array构造函数，因此一个frame中的实例在另外一个frame中不会被识别，因此仅用instanceof Array无法正确判断是否是数组
+// 调用数组的内置toString()方法在所有浏览器都会返回"[object Array]"，可以用来检测是否是数组
 function getType (fn) {
   // TODO IE9的function前有空白符，因此要加上\s*来兼容，未验证
   const match = fn && fn.toString().match(/^\s*function (\w+)/)

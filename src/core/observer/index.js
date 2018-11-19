@@ -113,12 +113,14 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
  */
+// 尝试为一个值创建一个观察者，返回observer实例
 export function observe (value: any, asRootData: ?boolean): Observer | void {
   // 只能是对象或者数组，才会执行本函数
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   let ob: Observer | void
+  // 如果该值已经创建了观察者，则返回observer实例
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
@@ -150,7 +152,7 @@ export function defineReactive (
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
   // 如果该属性的特性无法配置（get、set），那么无法监听
-  if (property && property.configurable === false) {
+  if (property && property.configurabe === false) {
     return
   }
 

@@ -75,10 +75,15 @@ export default class Watcher {
       ? expOrFn.toString()
       : ''
     // parse expression for getter
+    // watch支持2种表示路径的方式
+    // 1、函数，用来取代更复杂的表达式
+    // Q 如果函数不是return this.a而是return 1，会收集依赖吗？
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
+      // 2、表达式，只接受监督的键路径
       this.getter = parsePath(expOrFn)
+      // 如果路径不正确
       if (!this.getter) {
         this.getter = function () {}
         process.env.NODE_ENV !== 'production' && warn(
@@ -104,9 +109,9 @@ export default class Watcher {
     try {
       // 获取$watch监听的路径a.b.c的值
       // Q 这里为什么要用call？
-      // A 为了针对getter为Function的情况，当Function中return this.a + this.b时，需要绑定this
+      // A 为了针对用户调用$watch时，expOrFn为Function的情况，当Function中return this.a + this.b时，需要绑定this
       // Q 这里为什么要用try...catch包裹？
-      // A 当getter为Function时，return this.a.b，这时vm上如果没有a.b，则会报错
+      // A 当expOrFn为Function时，return this.a.b，这时vm上如果没有a.b，则会报错
       value = this.getter.call(vm, vm)
     } catch (e) {
       // 用户调用$watch时产生的错误，进行错误拦截提示
@@ -119,6 +124,7 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      // 监听expOrFn返回值的每一个属性
       if (this.deep) {
         // Q 这里给Object或者Array递归地加上了监听，那么如果是String等简单数据类型，在哪里加的监听，还是已经加上了监听？
         traverse(value)
