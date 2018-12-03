@@ -43,6 +43,7 @@ export default class Dep {
       // order
       subs.sort((a, b) => a.id - b.id)
     }
+    // TODO for与forEach的效率？
     for (let i = 0, l = subs.length; i < l; i++) {
       subs[i].update()
     }
@@ -52,6 +53,8 @@ export default class Dep {
 // the current target watcher being evaluated.
 // this is globally unique because there could be only one
 // watcher being evaluated at any time.
+// 当前目标的watcher被调用的时候，Dep.target才会有值
+// 由于在任何时间内，只有1个watcher能被调用，因此Dep.target是全局唯一的
 Dep.target = null
 const targetStack = []
 

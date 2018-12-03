@@ -121,6 +121,7 @@ function initData (vm: Component) {
     : data || {}
   // data必须是纯粹的对象 (含有零个或多个的 key/value 对)
   if (!isPlainObject(data)) {
+    // 限制为对象
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
       'data functions should return an object:\n' +
@@ -129,7 +130,6 @@ function initData (vm: Component) {
     )
   }
   // proxy data on instance
-  // 将data对象的key，代理到vm上
   const keys = Object.keys(data)
   const props = vm.$options.props
   const methods = vm.$options.methods
@@ -137,8 +137,7 @@ function initData (vm: Component) {
   while (i--) {
     const key = keys[i]
     if (process.env.NODE_ENV !== 'production') {
-      // 如果methods对象上的key值，已经被data对象定义
-      // TODO 谁覆盖谁？
+      // 1、如果methods对象上的key值，已经被data对象定义
       if (methods && hasOwn(methods, key)) {
         warn(
           `Method "${key}" has already been defined as a data property.`,
@@ -146,7 +145,7 @@ function initData (vm: Component) {
         )
       }
     }
-    // 如果data对象上的key值，已经被prop对象定义
+    // 2、如果data对象上的key值，已经被prop对象定义
     if (props && hasOwn(props, key)) {
       process.env.NODE_ENV !== 'production' && warn(
         `The data property "${key}" is already declared as a prop. ` +
@@ -154,7 +153,9 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
-      // 以 _ 或 $ 开头的属性不会被Vue实例代理，因为它们可能和Vue内置的属性、API方法冲突
+      // 以 _ 或 $ 开头的属性不会被Vue实例代理，因为它们可能和Vue内置的属性、API方法冲突，因此要判断下
+
+      // 3、将data对象的所有key，代理到vm上。存取vm上的对应key时，实为存取vm._data上对应key
       proxy(vm, `_data`, key)
     }
   }

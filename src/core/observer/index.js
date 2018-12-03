@@ -70,6 +70,7 @@ export class Observer {
     for (let i = 0; i < keys.length; i++) {
       // #7280 https://github.com/vuejs/vue/pull/7280
       // defineReactive(obj, keys[i], obj(keys[i]))
+      // 第三个参数会导致组件在初始化的时候就调用了data的getters
       defineReactive(obj, keys[i])
     }
   }
@@ -161,16 +162,23 @@ export function defineReactive (
   // A 访问器属性带有非必需的get和set，数据属性即键值对
   const getter = property && property.get
   const setter = property && property.set
+  // T 下式的if讨论的仅仅是访问器属性的情况，该情况比较少见。用的更多的是数据属性
   // #7280 https://github.com/vuejs/vue/pull/7280
   // #7302 https://github.com/vuejs/vue/pull/7302
-  // 在初始化observe的时候，如果该属性定义了getter，则不执行getter函数。如果没有定义getter，则直接赋值
+  // 为了防止初始化组件时，就调用了data的getter，因此不在walk函数中直接访问data的value
+  // 而是在本函数内部，如果该属性定义了getter，则不访问这个属性。如果没有定义getter，才进行访问
+
   // #7828 https://github.com/vuejs/vue/pull/7828
-  // 如果初始化的时候，setter函数已经定义了，则执行getter函数
+  // 由于#7302为了在初始化时不触发getter，仅根据getter的有无，来判断是否能访问属性
+  // 这会导致当存在setter，即需要改变属性的值时，由于没有执行observe函数，属性的改变不是响应式的
+  // 因此需要在条件判断加上setter
+  // 下式表示只存在getter时，才不访问属性的值
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }
 
   let childOb = !shallow && observe(val)
+  // 将data的属性，转为访问器属性
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
