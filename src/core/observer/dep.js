@@ -36,6 +36,9 @@ export default class Dep {
 
   notify () {
     // stabilize the subscriber list first
+    // 如果不浅复制出一个数组，而是在for循环中实时访问this.subs
+    // 由于在提供的回调函数中可以访问并修改dep.subs，会造成错误
+    // TODO 由于watcher暂未熟读，上述待验证
     const subs = this.subs.slice()
     if (process.env.NODE_ENV !== 'production' && !config.async) {
       // subs aren't sorted in scheduler if not running async
