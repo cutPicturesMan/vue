@@ -57,6 +57,11 @@ export class Observer {
       }
       this.observeArray(value)
     } else {
+      // 1、首次进来肯定是obj。
+      // 由于可以确定为obj，obj的根属性可以为任意值，当整个替换掉时，是可以触发页面的更新的，因为已经为这个根属性设置了getter/setter。
+      // 但如果这个根属性是对象/数组，仅仅改变该对象/数组中的某个属性，由于根属性引用的还是这个对象/数组本身，因此不会触发getter/setter，这时候就需要：
+      // 1、为对象的每个属性设置getter/setter，但是新增属性、删除属性则无法监控到（解决方法：1、需要写一个set方法；2、整个替换掉对象）
+      // 2、为数组中的每个值设置getter/setter（并不是为每个序号设置getter/setter），导致直接修改数组中的某个值、直接改变数组的长度则无法监控到（解决方法：1、）
       this.walk(value)
     }
   }
@@ -231,14 +236,17 @@ export function defineReactive (
  */
 /**
  * 为对象或数组添加响应式属性 https://cn.vuejs.org/v2/guide/reactivity.html
+ * 1、Vue不能检测到对象属性的添加或删除
+ * 2、Vue不能检测以下变动的数组
+ *  1）当你利用索引直接设置一个项时，例如：vm.items[indexOfItem] = newValue
+ *  2）当你修改数组的长度时，例如：vm.items.length = newLength
+ *
  * 【对象】
  *    1、全局方法：Vue.set(vm.someObject, 'b', 2)
  *    2、实例方法：this.$set(this.someObject,'b',2)
- *    3、
- *    为对象添加多个属性：
- *      this.someObject = Object.assign({}, this.someObject, { a: 1, b: 2 })
- *    无效：
- *      Object.assign(this.someObject, { a: 1, b: 2 })
+ *    3、为对象添加多个属性
+ *    有效（Object.assign返回了一个新对象）：this.someObject = Object.assign({}, this.someObject, { a: 1, b: 2 })
+ *    无效：Object.assign(this.someObject, { a: 1, b: 2 })
  *
  */
 export function set (target: Array<any> | Object, key: any, val: any): any {
