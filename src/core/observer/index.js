@@ -117,7 +117,7 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  */
 // 尝试为一个值创建一个观察者，返回observer实例
 export function observe (value: any, asRootData: ?boolean): Observer | void {
-  // 只能是对象或者数组，才会执行本函数
+  // 只有对象或者数组，才会执行本函数
   if (!isObject(value) || value instanceof VNode) {
     return
   }
@@ -199,6 +199,8 @@ export function defineReactive (
     set: function reactiveSetter (newVal) {
       const value = getter ? getter.call(obj) : val
       /* eslint-disable no-self-compare */
+      // 关闭eslint的禁止自身比较
+      // 新旧值相同 || 新旧值都是NaN，则不执行set
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
       }
@@ -207,6 +209,9 @@ export function defineReactive (
         customSetter()
       }
       // #7981: for accessor properties without setter
+      // 如果一个访问器属性，原本只有getter，没有setter。在经过defineReactive函数处理之后，会加上setter
+      // 当试图修改这个属性的值时，setter函数会执行，并且observe新值
+      // 但是由于只存在getter，setter中设置的值，与getter获取的值，永远没有关联，这个被观察的新值永远不会被依赖
       if (getter && !setter) return
       if (setter) {
         setter.call(obj, newVal)
@@ -224,6 +229,18 @@ export function defineReactive (
  * triggers change notification if the property doesn't
  * already exist.
  */
+/**
+ * 为对象或数组添加响应式属性 https://cn.vuejs.org/v2/guide/reactivity.html
+ * 【对象】
+ *    1、全局方法：Vue.set(vm.someObject, 'b', 2)
+ *    2、实例方法：this.$set(this.someObject,'b',2)
+ *    3、
+ *    为对象添加多个属性：
+ *      this.someObject = Object.assign({}, this.someObject, { a: 1, b: 2 })
+ *    无效：
+ *      Object.assign(this.someObject, { a: 1, b: 2 })
+ *
+ */
 export function set (target: Array<any> | Object, key: any, val: any): any {
   if (process.env.NODE_ENV !== 'production' &&
     (isUndef(target) || isPrimitive(target))
@@ -240,6 +257,11 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     return val
   }
   const ob = (target: any).__ob__
+  // 由于在data上添加根属性时，需要：
+  // 1、检测props、methods上是否有同名属性
+  // 2、检测待添加的属性是否是保留属性（$、_开头）
+  // 3、将该属性代理到vm上
+  // 如果要为data添加根属性，完全可以通过初始化的时候在data上声明，没有必要调用Vue.set函数来专门声明
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -252,6 +274,7 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     return val
   }
   defineReactive(ob.value, key, val)
+  // TODO 如果在data上定义了根属性，那这里的notify会通知所有的data属性吗？（目前对dep依赖不是特别熟悉）
   ob.dep.notify()
   return val
 }
