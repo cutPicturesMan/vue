@@ -45,9 +45,13 @@ export function proxy (target: Object, sourceKey: string, key: string) {
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
+// Q initState只在new Vue()时调用？name子组件的初始化是在哪里？不需要调用initState吗？
 export function initState (vm: Component) {
   vm._watchers = []
   const opts = vm.$options
+  // TODO 如下两个疑问：
+  // 1、如果在new Vue时声明了props，会如何？跟data是一样的
+  // 2、data作为父级以及子组件都有的属性，为什么不是最先初始化的？由于子组件中，data、methods
   if (opts.props) initProps(vm, opts.props)
   if (opts.methods) initMethods(vm, opts.methods)
   if (opts.data) {
@@ -62,14 +66,18 @@ export function initState (vm: Component) {
 }
 
 function initProps (vm: Component, propsOptions: Object) {
-  // 父组件传给子组件的props数据
+  // 用户定义的props数据
   const propsData = vm.$options.propsData || {}
+  // 挂载到vue实例上的props数据
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
+  // 缓存props的所有key。这样在lifeCircle更新时就可以直接使用数组，而不需要动态枚举对象取key值
+  // Q 1、lifeCircle更新是什么样的过程？2、for...in枚举key值与循环数组的性能差距？
   const keys = vm.$options._propKeys = []
   const isRoot = !vm.$parent
   // root instance props should be converted
+  // 根实例上的props不需要被Observe
   if (!isRoot) {
     toggleObserving(false)
   }
@@ -166,6 +174,10 @@ function initData (vm: Component) {
 
 export function getData (data: Function, vm: Component): any {
   // #7573 disable dep collection when invoking data getters
+  // 禁止子组件的data在初始化时，收集依赖。防止：
+  // 1、父组件data更新，触发update lifecircle
+  // TODO 下述逻辑需要验证，即在子组件初始化时，Dep.target是否指向子组件
+  // 2、父组件data更新，通知其依赖项（子组件的data），触发其更新？
   pushTarget()
   try {
     return data.call(vm, vm)
