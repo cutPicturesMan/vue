@@ -111,6 +111,7 @@ function initProps (vm: Component, propsOptions: Object) {
   toggleObserving(true)
 }
 
+// 初始化data属性
 function initData (vm: Component) {
   let data = vm.$options.data
   // 这里的data有可能是根的data，也有可能是组件的data
