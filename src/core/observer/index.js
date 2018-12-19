@@ -120,7 +120,7 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
  */
-// 尝试为一个值创建一个观察者，返回observer实例
+// 尝试为一个任意值创建观察者模式，返回observer实例
 export function observe (value: any, asRootData: ?boolean): Observer | void {
   // 只有对象或者数组，才会执行本函数
   if (!isObject(value) || value instanceof VNode) {
@@ -183,6 +183,7 @@ export function defineReactive (
     val = obj[key]
   }
 
+  // 递归监听对象或者数组类型的子元素
   let childOb = !shallow && observe(val)
   // 将data的属性，转为访问器属性
   Object.defineProperty(obj, key, {
@@ -190,8 +191,10 @@ export function defineReactive (
     configurable: true,
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
+      // TODO dep.depend()不应该是在get的时候都要执行吗？为什么是放到Dep.target条件中？
       if (Dep.target) {
         dep.depend()
+        // TODO 当获取一个属性的值时，并没有获取这个值的子属性，为什么要给子属性加上依赖？
         if (childOb) {
           childOb.dep.depend()
           if (Array.isArray(value)) {
@@ -255,21 +258,24 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
+  // 数组采用异变方法进行值更新
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key)
     target.splice(key, 1, val)
     return val
   }
+  // 已存在的对象属性，则直接更新
   if (key in target && !(key in Object.prototype)) {
     target[key] = val
     return val
   }
+  // 由于getter/setter是添加到对象的属性上的，直接判断该对象是否Observer过，要通过__ob__属性
   const ob = (target: any).__ob__
   // 由于在data上添加根属性时，需要：
   // 1、检测props、methods上是否有同名属性
   // 2、检测待添加的属性是否是保留属性（$、_开头）
   // 3、将该属性代理到vm上
-  // 如果要为data添加根属性，完全可以通过初始化的时候在data上声明，没有必要调用Vue.set函数来专门声明
+  // 如果要为data添加根属性，需要先执行上述3个步骤，不能在Vue.set函数中声明
   if (target._isVue || (ob && ob.vmCount)) {
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
@@ -277,12 +283,13 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     )
     return val
   }
+  // 该对象不是响应式对象，则直接添加属性
   if (!ob) {
     target[key] = val
     return val
   }
+  // 为响应式对象，添加新的属性
   defineReactive(ob.value, key, val)
-  // TODO 如果在data上定义了根属性，那这里的notify会通知所有的data属性吗？（目前对dep依赖不是特别熟悉）
   ob.dep.notify()
   return val
 }
