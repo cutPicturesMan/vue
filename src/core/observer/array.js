@@ -6,6 +6,7 @@
 import { def } from '../util/index'
 
 const arrayProto = Array.prototype
+// 为毛要create？
 export const arrayMethods = Object.create(arrayProto)
 
 const methodsToPatch = [
@@ -20,15 +21,15 @@ const methodsToPatch = [
 
 /**
  * Intercept mutating methods and emit events
- */
-methodsToPatch.forEach(function (method) {
-  // cache original method
+ */methodsToPatch.forEach(function (method) {
+
+    // cache original method
   const original = arrayProto[method]
   def(arrayMethods, method, function mutator (...args) {
     const result = original.apply(this, args)
     const ob = this.__ob__
     let inserted
-    // 对新增加的参数，进行observe
+    // 对待插入数组的参数，进行observe
     switch (method) {
       case 'push':
       case 'unshift':
