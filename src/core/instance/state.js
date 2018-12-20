@@ -341,6 +341,9 @@ function createWatcher (
   return vm.$watch(expOrFn, handler, options)
 }
 
+// 在原型上定义数据有关的：
+// 属性：$data、$props
+// 方法：$set、$delete、$watch
 export function stateMixin (Vue: Class<Component>) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
@@ -361,24 +364,31 @@ export function stateMixin (Vue: Class<Component>) {
       warn(`$props is readonly.`, this)
     }
   }
+  // Q 为什么要代理？直接访问_data、_props不就好了吗？
+  // 将this.$data、this.$props代理到this._data、this._props上
   Object.defineProperty(Vue.prototype, '$data', dataDef)
   Object.defineProperty(Vue.prototype, '$props', propsDef)
 
   Vue.prototype.$set = set
   Vue.prototype.$delete = del
 
+  // $watch只用于用户调用
   Vue.prototype.$watch = function (
     expOrFn: string | Function,
     cb: any,
     options?: Object
   ): Function {
     const vm: Component = this
+    // 合法的cb类型为Object、Function。先验证是否是Object，如果不是则直接当作Function，运行错误就抛出异常
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
     }
     options = options || {}
     options.user = true
     const watcher = new Watcher(vm, expOrFn, cb, options)
+    // 这里要说明下immediate的用处。在初始化的时候，watch的回调函数，是不会执行的。如果需要让cb在初始化的时候就执行，则将immediate设为true
+    // 比如说有个组件，在初始化的时候，要根据props传来的tabIndex去加载不同接口，这时候在监控tabIndex的同时，需要开启immediate，避免第一次传值不生效
+    // 比如有个计算购物车总价的功能。初始化的时候购物车是空数组，在created时发出请求去取购物车数据。由于这个数据与初始化无关，因此不需要添加immediate
     if (options.immediate) {
       try {
         cb.call(vm, watcher.value)
