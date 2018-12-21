@@ -312,9 +312,13 @@ function initMethods (vm: Component, methods: Object) {
   }
 }
 
+// 初始化new Vue()的watch
 function initWatch (vm: Component, watch: Object) {
   for (const key in watch) {
     const handler = watch[key]
+    // handler合法类型有4种：Function、Object、String、Array
+    // 由于Array的子元素可以包含任意类型，其中包括Function、Object、String，因此这里单独处理Array类型
+    // 这里不再判断子元素是否合法了，因为$watch只接受Object、Function，不合法的话自然会报错
     if (Array.isArray(handler)) {
       for (let i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i])
@@ -325,6 +329,9 @@ function initWatch (vm: Component, watch: Object) {
   }
 }
 
+// 用于以下2种调用
+// 1、new Vue(): Object、String、Function、不合法类型 => Function、不合法类型
+// 2、$watch: Object、Function、不合法类型 => Function、不合法类型
 function createWatcher (
   vm: Component,
   expOrFn: string | Function,
@@ -372,14 +379,14 @@ export function stateMixin (Vue: Class<Component>) {
   Vue.prototype.$set = set
   Vue.prototype.$delete = del
 
-  // $watch只用于用户调用
+  // $watch不仅提供给用户调用，还提供给内部处理new Vue()的watch属性
   Vue.prototype.$watch = function (
     expOrFn: string | Function,
+    // 合法的cb类型为Object、Function。先验证是否是Object，如果不是则直接当作Function，运行错误就抛出异常
     cb: any,
     options?: Object
   ): Function {
     const vm: Component = this
-    // 合法的cb类型为Object、Function。先验证是否是Object，如果不是则直接当作Function，运行错误就抛出异常
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
     }
