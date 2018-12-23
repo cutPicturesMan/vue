@@ -33,7 +33,8 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
  */
 const bailRE = /[^\w.$]/
 export function parsePath (path: string): any {
-  // 路径可能为：'a.b.c'、'$a.b.c'，不属于这种的都是错误路径
+  // 路径除了字母数字下划线之外，只能包含两个特殊字符"."、"$"：'a.b.c'、'$a.b.c'
+  // 其余都是都是错误路径，直接return
   if (bailRE.test(path)) {
     return
   }

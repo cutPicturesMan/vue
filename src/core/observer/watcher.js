@@ -76,15 +76,14 @@ export default class Watcher {
       ? expOrFn.toString()
       : ''
     // parse expression for getter
-    // watch支持2种表示路径的方式
-    // 1、函数，用来取代更复杂的表达式
-    // Q 如果函数不是return this.a而是return 1，会收集依赖吗？
+    // 将expOrFn统一转为Function形式后赋值给getter
+    // Q 如果函数不是return this.a而是return 1，会有什么影响？
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
-      // 2、表达式，只接受监督的键路径
+      // parsePath只接受String形式的键路径，返回Undefined或Function
       this.getter = parsePath(expOrFn)
-      // 如果路径不正确
+      // 路径解析出错，要专门提示下。执行getter出错，放到get函数中处理
       if (!this.getter) {
         this.getter = noop
         process.env.NODE_ENV !== 'production' && warn(
@@ -108,18 +107,17 @@ export default class Watcher {
     let value
     const vm = this.vm
     try {
-      // 获取$watch监听的路径a.b.c的值
       // Q 这里为什么要用call？
-      // A 为了针对用户调用$watch时，expOrFn为Function的情况，当Function中return this.a + this.b时，需要绑定this
+      // A getter中有可能访问this，如return this.a + this.b，因此需要绑定this
       // Q 这里为什么要用try...catch包裹？
-      // A 当expOrFn为Function时，return this.a.b，这时vm上如果没有a.b，则会报错
+      // A getter完全是用户自定义的，内部有可能出错，如return this.a.b，这时vm上如果没有a.b，则会报错
       value = this.getter.call(vm, vm)
     } catch (e) {
-      // 用户调用$watch时产生的错误，进行错误拦截提示
+      // new Watcher在$watch中调用产生的错误，进行错误拦截提示
       if (this.user) {
         handleError(e, vm, `getter for watcher "${this.expression}"`)
       } else {
-        // 内部调用产生的错误，则抛出
+        // 内部调用产生的错误，则直接抛出
         throw e
       }
     } finally {
