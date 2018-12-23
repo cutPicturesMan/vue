@@ -11,6 +11,7 @@ const seenObjects = new Set()
  * getters, so that every nested property inside the object
  * is collected as a "deep" dependency.
  */
+// 递归地访问对象的每一个属性，将每个属性的dep属性添加到new Watcher的newDeps中
 export function traverse (val: any) {
   _traverse(val, seenObjects)
   seenObjects.clear()
