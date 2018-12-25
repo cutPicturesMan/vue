@@ -195,8 +195,10 @@ export function defineReactive (
       if (Dep.target) {
         dep.depend()
         // TODO 当获取一个属性的值时，并没有获取这个值的子属性，为什么要给子属性加上依赖？
+        // 收集第一层子属性的依赖
         if (childOb) {
           childOb.dep.depend()
+          // TODO 为什么只收集数组的依赖，对象呢？
           if (Array.isArray(value)) {
             dependArray(value)
           }
