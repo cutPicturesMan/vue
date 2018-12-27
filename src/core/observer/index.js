@@ -41,9 +41,12 @@ export class Observer {
 
   constructor (value: any) {
     this.value = value
+    // 这里的dep与defineReactive中的dep不同
+    // 此dep用于在对象或数组发生无法检测的变动时，通知watch
     this.dep = new Dep()
     this.vmCount = 0
     def(value, '__ob__', this)
+    // js中无法检测数组内部的变动，因此重写了7个数组原生的方法，来进行响应式更新
     if (Array.isArray(value)) {
       // 判断是否可以通过浏览器内置属性__proto__进行继承
       // 如果可以，则修改value的__proto__，指向重写了7个内置方法的数组
@@ -57,8 +60,8 @@ export class Observer {
       }
       this.observeArray(value)
     } else {
-      // 1、首次进来肯定是obj。
-      // 由于可以确定为obj，obj的根属性可以为任意值，当整个替换掉时，是可以触发页面的更新的，因为已经为这个根属性设置了getter/setter。
+      // 1、首次进来肯定是obj
+      // 由于可以确定为obj，obj的根属性可以为任意值，当整个替换掉时，是可以触发页面的更新的，因为已经为这个根属性设置了getter/setter
       // 但如果这个根属性是对象/数组，仅仅改变该对象/数组中的某个属性，由于根属性引用的还是这个对象/数组本身，因此不会触发getter/setter，这时候就需要：
       // 1、为对象的每个属性设置getter/setter，但是新增属性、删除属性则无法监控到（解决方法：1、需要写一个set方法；2、整个替换掉对象）
       // 2、为数组中的每个值设置getter/setter（并不是为每个序号设置getter/setter），导致直接修改数组中的某个值、直接改变数组的长度则无法监控到（解决方法：1、在set方法中处理；2、用异变方法处理，而不是直接替换值）
@@ -155,6 +158,7 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
+  // 此dep用于对象的属性调用setter时，通知watch
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
@@ -194,8 +198,8 @@ export function defineReactive (
       // TODO dep.depend()不应该是在get的时候都要执行吗？为什么是放到Dep.target条件中？
       if (Dep.target) {
         dep.depend()
-        // TODO 当获取一个属性的值时，并没有获取这个值的子属性，为什么要给子属性加上依赖？
-        // 收集第一层子属性的依赖
+        // 如果值是对象或者数组，要将当前watch添加到值的__ob__.dep上
+        // 这样才能在值发生无法检测的变动时（对象属性的添加与删除、数组修改长度与利用索引直接设置一个项），手动通知watch
         if (childOb) {
           childOb.dep.depend()
           // TODO 为什么只收集数组的依赖，对象呢？
@@ -246,6 +250,7 @@ export function defineReactive (
  *  1）当你利用索引直接设置一个项时，例如：vm.items[indexOfItem] = newValue
  *  2）当你修改数组的长度时，例如：vm.items.length = newLength
  *
+ * 解决方法：
  * 【对象】
  *    1、全局方法：Vue.set(vm.someObject, 'b', 2)
  *    2、实例方法：this.$set(this.someObject,'b',2)
@@ -253,6 +258,9 @@ export function defineReactive (
  *    有效（Object.assign返回了一个新对象）：this.someObject = Object.assign({}, this.someObject, { a: 1, b: 2 })
  *    无效：Object.assign(this.someObject, { a: 1, b: 2 })
  *
+ * 【数组】
+ *    1、Vue.set(vm.items, indexOfItem, newValue)
+ *    2、vm.items.splice(indexOfItem, 1, newValue)
  */
 export function set (target: Array<any> | Object, key: any, val: any): any {
   if (process.env.NODE_ENV !== 'production' &&

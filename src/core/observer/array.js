@@ -6,7 +6,7 @@
 import { def } from '../util/index'
 
 const arrayProto = Array.prototype
-// 为毛要create？
+// TODO 为毛要create？
 export const arrayMethods = Object.create(arrayProto)
 
 const methodsToPatch = [
