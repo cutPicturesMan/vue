@@ -197,10 +197,13 @@ export function defineReactive (
       const value = getter ? getter.call(obj) : val
       // TODO dep.depend()不应该是在get的时候都要执行吗？为什么是放到Dep.target条件中？
       if (Dep.target) {
+        // 当子属性的值整个发生变化时，通知watch
         dep.depend()
-        // 如果值是对象或者数组，要将当前watch添加到值的__ob__.dep上
-        // 这样才能在值发生无法检测的变动时（对象属性的添加与删除、数组修改长度与利用索引直接设置一个项），手动通知watch
+        // 当子属性的值是对象或者数组，要将当前watch添加到子属性的__ob__.dep上
+        // 这样才能在子元素的值发生无法检测的变动时（对象属性的添加与删除、数组修改长度与利用索引直接设置一个项），手动通知watch
         if (childOb) {
+          // 对于对象来说，上式observe(val)递归处理了子属性的值，再经过这一步的处理，形成了一个闭环
+          // 这里的childOb，最多到倒数第二个属性有值，倒数第一个属性是不会进来的。因此下面要专门处理下Array中的obj的情况
           childOb.dep.depend()
           // TODO 为什么只收集数组的依赖，对象呢？
           if (Array.isArray(value)) {
