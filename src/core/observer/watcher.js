@@ -123,9 +123,8 @@ export default class Watcher {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
-      // 监听expOrFn返回值的每一个属性
       if (this.deep) {
-        // Q 这里给Object或者Array递归地加上了监听，那么如果是String等简单数据类型，在哪里加的监听，还是已经加上了监听？
+        // 递归访问每一个属性
         traverse(value)
       }
       popTarget()
