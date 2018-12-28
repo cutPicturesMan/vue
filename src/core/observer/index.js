@@ -202,10 +202,17 @@ export function defineReactive (
         // 当子属性的值是对象或者数组，要将当前watch添加到子属性的__ob__.dep上
         // 这样才能在子元素的值发生无法检测的变动时（对象属性的添加与删除、数组修改长度与利用索引直接设置一个项），手动通知watch
         if (childOb) {
-          // 对于对象来说，上式observe(val)递归处理了子属性的值，再经过这一步的处理，形成了一个闭环
-          // 这里的childOb，最多到倒数第二个属性有值，倒数第一个属性是不会进来的。因此下面要专门处理下Array中的obj的情况
+          // observe(val)递归处理了子属性。能进入到这里，说明该子属性为对象或者数组
+          // 假设对象为obj.a.b.c.d.e =  {f: 1}，observe会一直处理到obj.a.b.c.d.e属性，并进入到这里，为e的dep加上watch
+          // 假设数组为obj.a.b.c.d.e = [{f: 1}]，observe同样会一直处理到obj.a.b.c.d.e属性，并进入到这里，为e的dep加上watch
+          // 这里要注意下，e为数组时，childOb.dep.depend()是为该数组的dep添加watch
+          // 而数组中的对象{f: 1}，整体的dep中缺少的watch，为{f: 1}添加一个属性的时候，是不会有反应的
+          // 有效：this.obj.a.b.c.d.e[0].f = 2;
+          // 有效：this.obj.a.b.c.d.e[0].push({g: 2});
+          // 无效：this.$set(this.obj.a.b.c.d.e[0], 'g', 2);
+          // 因此需要手动将watch添加到dep中
           childOb.dep.depend()
-          // TODO 为什么只收集数组的依赖，对象呢？
+          // 手动添加watch到dep
           if (Array.isArray(value)) {
             dependArray(value)
           }
