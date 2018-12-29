@@ -21,11 +21,12 @@ const methodsToPatch = [
 
 /**
  * Intercept mutating methods and emit events
- */methodsToPatch.forEach(function (method) {
-
-    // cache original method
+ */
+methodsToPatch.forEach(function (method) {
+  // cache original method
   const original = arrayProto[method]
   def(arrayMethods, method, function mutator (...args) {
+    // TODO arguments的内存泄漏问题
     const result = original.apply(this, args)
     const ob = this.__ob__
     let inserted

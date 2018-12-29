@@ -120,6 +120,8 @@ export function eventsMixin (Vue: Class<Component>) {
 
   Vue.prototype.$emit = function (event: string): Component {
     const vm: Component = this
+    // html的属性不区分大小写，js区分大小写
+    // 当在html上监听一个驼峰式的事件，而js事件列表中正好有与其对应的小写事件，会阴差阳错的对应上，这里要提醒下
     if (process.env.NODE_ENV !== 'production') {
       const lowerCaseEvent = event.toLowerCase()
       if (lowerCaseEvent !== event && vm._events[lowerCaseEvent]) {
