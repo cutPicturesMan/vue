@@ -10,6 +10,7 @@ import {
 import { updateListeners } from '../vdom/helpers/index'
 
 export function initEvents (vm: Component) {
+  // 总体事件对象
   vm._events = Object.create(null)
   vm._hasHookEvent = false
   // init parent attached events
@@ -59,6 +60,7 @@ export function eventsMixin (Vue: Class<Component>) {
         vm.$on(event[i], fn)
       }
     } else {
+      // 将事件添加到总事件对象上，单个事件可以使用$on添加多个处理函数
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
