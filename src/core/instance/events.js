@@ -140,6 +140,7 @@ export function eventsMixin (Vue: Class<Component>) {
     let cbs = vm._events[event]
     if (cbs) {
       // TODO 为什么要判断长度？
+      // TODO 这里我个人认为不需要，应该去掉
       cbs = cbs.length > 1 ? toArray(cbs) : cbs
       // TODO 这里用toArray和Array.prototype.slice.call(arguments, 1)的区别？
       const args = toArray(arguments, 1)
