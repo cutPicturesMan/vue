@@ -53,9 +53,9 @@ export default class Dep {
   }
 }
 
-// the current target watcher being evaluated.
-// this is globally unique because there could be only one
-// watcher being evaluated at any time.
+// The current target watcher being evaluated.
+// This is globally unique because only one watcher
+// can be evaluated at a time.
 // 当前目标的watcher被调用的时候，Dep.target才会有值
 // 由于在任何时间内，只有1个watcher能被调用，因此Dep.target是全局唯一的
 Dep.target = null
