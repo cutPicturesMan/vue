@@ -74,10 +74,12 @@ export function eventsMixin (Vue: Class<Component>) {
 
   Vue.prototype.$once = function (event: string, fn: Function): Component {
     const vm: Component = this
+    // 由于$once只触发1次，因此解绑事件需要和fn同时执行，而且要在fn之前执行，否则会陷入死循环
     function on () {
       vm.$off(event, on)
       fn.apply(vm, arguments)
     }
+    // 把fn挂到on函数上，才能知道需要解绑的是哪个事件处理函数
     on.fn = fn
     vm.$on(event, on)
     return vm
@@ -86,11 +88,13 @@ export function eventsMixin (Vue: Class<Component>) {
   Vue.prototype.$off = function (event?: string | Array<string>, fn?: Function): Component {
     const vm: Component = this
     // all
+    // 如果没有指定任何参数，则移除所有事件
     if (!arguments.length) {
       vm._events = Object.create(null)
       return vm
     }
     // array of events
+    // 如果是数组，则逐个移除
     if (Array.isArray(event)) {
       for (let i = 0, l = event.length; i < l; i++) {
         vm.$off(event[i], fn)
@@ -99,9 +103,11 @@ export function eventsMixin (Vue: Class<Component>) {
     }
     // specific event
     const cbs = vm._events[event]
+    // 如果没有找到指定事件的函数集合，则返回
     if (!cbs) {
       return vm
     }
+    // 如果没有指定解绑具体的事件处理函数，那么就解绑该事件下所有的处理函数
     if (!fn) {
       vm._events[event] = null
       return vm
@@ -109,6 +115,7 @@ export function eventsMixin (Vue: Class<Component>) {
     // specific handler
     let cb
     let i = cbs.length
+    // 循环指定事件的函数集合，移除指定的事件处理函数
     while (i--) {
       cb = cbs[i]
       if (cb === fn || cb.fn === fn) {
