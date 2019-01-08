@@ -35,6 +35,7 @@ export function initMixin (Vue: Class<Component>) {
       // internal component options needs special treatment.
       initInternalComponent(vm, options)
     } else {
+      // 将options的多种情况，比如props的多种传参方式，转变为固定的一种
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},

@@ -76,10 +76,14 @@ export default class Watcher {
       ? expOrFn.toString()
       : ''
     // parse expression for getter
+    // 将expOrFn统一转为Function形式后赋值给getter
+    // Q 如果函数不是return this.a而是return 1，会有什么影响？
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
+      // parsePath只接受String形式的键路径，返回Undefined或Function
       this.getter = parsePath(expOrFn)
+      // 路径解析出错，要专门提示下。执行getter出错，放到get函数中处理
       if (!this.getter) {
         this.getter = noop
         process.env.NODE_ENV !== 'production' && warn(
@@ -103,17 +107,24 @@ export default class Watcher {
     let value
     const vm = this.vm
     try {
+      // Q 这里为什么要用call？
+      // A getter中有可能访问this，如return this.a + this.b，因此需要绑定this
+      // Q 这里为什么要用try...catch包裹？
+      // A getter完全是用户自定义的，内部有可能出错，如return this.a.b，这时vm上如果没有a.b，则会报错
       value = this.getter.call(vm, vm)
     } catch (e) {
+      // new Watcher在$watch中调用产生的错误，进行错误拦截提示
       if (this.user) {
         handleError(e, vm, `getter for watcher "${this.expression}"`)
       } else {
+        // 内部调用产生的错误，则直接抛出
         throw e
       }
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
       if (this.deep) {
+        // 递归访问每一个属性
         traverse(value)
       }
       popTarget()

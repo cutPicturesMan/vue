@@ -6,6 +6,7 @@
 import { def } from '../util/index'
 
 const arrayProto = Array.prototype
+// TODO 为毛要create？
 export const arrayMethods = Object.create(arrayProto)
 
 const methodsToPatch = [
@@ -25,9 +26,11 @@ methodsToPatch.forEach(function (method) {
   // cache original method
   const original = arrayProto[method]
   def(arrayMethods, method, function mutator (...args) {
+    // TODO arguments的内存泄漏问题
     const result = original.apply(this, args)
     const ob = this.__ob__
     let inserted
+    // 对待插入数组的参数，进行observe
     switch (method) {
       case 'push':
       case 'unshift':
@@ -40,6 +43,7 @@ methodsToPatch.forEach(function (method) {
     if (inserted) ob.observeArray(inserted)
     // notify change
     ob.dep.notify()
+    // 部分内置方法有返回值，这里要返回
     return result
   })
 })

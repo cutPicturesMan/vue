@@ -50,6 +50,7 @@ export function initRender (vm: Component) {
   }
 }
 
+// 在原型上定义渲染有关的方法：$nextTick、_render
 export function renderMixin (Vue: Class<Component>) {
   // install runtime convenience helpers
   installRenderHelpers(Vue.prototype)

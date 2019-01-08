@@ -45,9 +45,13 @@ export function proxy (target: Object, sourceKey: string, key: string) {
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
+// Q initState只在new Vue()时调用？name子组件的初始化是在哪里？不需要调用initState吗？
 export function initState (vm: Component) {
   vm._watchers = []
   const opts = vm.$options
+  // TODO 如下两个疑问：
+  // 1、如果在new Vue时声明了props，会如何？跟data是一样的
+  // 2、data作为父级以及子组件都有的属性，为什么不是最先初始化的？由于子组件中，data、methods
   if (opts.props) initProps(vm, opts.props)
   if (opts.methods) initMethods(vm, opts.methods)
   if (opts.data) {
@@ -62,16 +66,22 @@ export function initState (vm: Component) {
 }
 
 function initProps (vm: Component, propsOptions: Object) {
+  // 用户定义的props数据
   const propsData = vm.$options.propsData || {}
+  // 挂载到vue实例上的props数据
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
+  // 缓存props的所有key。这样在lifeCircle更新时就可以直接使用数组，而不需要动态枚举对象取key值
+  // Q 1、lifeCircle更新是什么样的过程？2、for...in枚举key值与循环数组的性能差距？
   const keys = vm.$options._propKeys = []
   const isRoot = !vm.$parent
   // root instance props should be converted
+  // 根实例上的props不需要被Observe
   if (!isRoot) {
     toggleObserving(false)
   }
+  // 处理子组件上声明的props
   for (const key in propsOptions) {
     keys.push(key)
     const value = validateProp(key, propsOptions, propsData, vm)
@@ -109,12 +119,18 @@ function initProps (vm: Component, propsOptions: Object) {
   toggleObserving(true)
 }
 
+// 初始化data属性
 function initData (vm: Component) {
   let data = vm.$options.data
+  // 这里的data有可能是根的data，也有可能是组件的data
+  // 如果是组件中的data，则必须是函数
+  // 因为组件可能被用来创建多个实例，如果data仍然是一个纯粹的对象，则所有的实例将共享引用同一个数据对象
   data = vm._data = typeof data === 'function'
     ? getData(data, vm)
     : data || {}
+  // data必须是纯粹的对象 (含有零个或多个的 key/value 对)
   if (!isPlainObject(data)) {
+    // 限制为对象
     data = {}
     process.env.NODE_ENV !== 'production' && warn(
       'data functions should return an object:\n' +
@@ -130,6 +146,7 @@ function initData (vm: Component) {
   while (i--) {
     const key = keys[i]
     if (process.env.NODE_ENV !== 'production') {
+      // 1、如果methods对象上的key值，已经被data对象定义
       if (methods && hasOwn(methods, key)) {
         warn(
           `Method "${key}" has already been defined as a data property.`,
@@ -137,6 +154,7 @@ function initData (vm: Component) {
         )
       }
     }
+    // 2、如果data对象上的key值，已经被prop对象定义
     if (props && hasOwn(props, key)) {
       process.env.NODE_ENV !== 'production' && warn(
         `The data property "${key}" is already declared as a prop. ` +
@@ -144,6 +162,9 @@ function initData (vm: Component) {
         vm
       )
     } else if (!isReserved(key)) {
+      // 以 _ 或 $ 开头的属性不会被Vue实例代理，因为它们可能和Vue内置的属性、API方法冲突，因此要判断下
+
+      // 3、将data对象的所有key，代理到vm上。存取vm上的对应key时，实为存取vm._data上对应key
       proxy(vm, `_data`, key)
     }
   }
@@ -153,6 +174,10 @@ function initData (vm: Component) {
 
 export function getData (data: Function, vm: Component): any {
   // #7573 disable dep collection when invoking data getters
+  // 禁止子组件的data在初始化时，收集依赖。防止：
+  // 1、父组件data更新，触发update lifecircle
+  // TODO 下述逻辑需要验证，即在子组件初始化时，Dep.target是否指向子组件
+  // 2、父组件data更新，通知其依赖项（子组件的data），触发其更新？
   pushTarget()
   try {
     return data.call(vm, vm)
@@ -287,9 +312,13 @@ function initMethods (vm: Component, methods: Object) {
   }
 }
 
+// 初始化new Vue()的watch
 function initWatch (vm: Component, watch: Object) {
   for (const key in watch) {
     const handler = watch[key]
+    // handler合法类型有4种：Function、Object、String、Array
+    // 由于Array的子元素可以包含任意类型，其中包括Function、Object、String，因此这里单独处理Array类型
+    // 这里不再判断子元素是否合法了，因为$watch只接受Object、Function，不合法的话自然会报错
     if (Array.isArray(handler)) {
       for (let i = 0; i < handler.length; i++) {
         createWatcher(vm, key, handler[i])
@@ -300,6 +329,9 @@ function initWatch (vm: Component, watch: Object) {
   }
 }
 
+// 用于以下2种调用
+// 1、new Vue(): Object、String、Function、不合法类型 => Function、不合法类型
+// 2、$watch: Object、Function、不合法类型 => Function、不合法类型
 function createWatcher (
   vm: Component,
   expOrFn: string | Function,
@@ -316,6 +348,9 @@ function createWatcher (
   return vm.$watch(expOrFn, handler, options)
 }
 
+// 在原型上定义数据有关的：
+// 属性：$data、$props
+// 方法：$set、$delete、$watch
 export function stateMixin (Vue: Class<Component>) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
@@ -336,14 +371,18 @@ export function stateMixin (Vue: Class<Component>) {
       warn(`$props is readonly.`, this)
     }
   }
+  // Q 为什么要代理？直接访问_data、_props不就好了吗？
+  // 将this.$data、this.$props代理到this._data、this._props上
   Object.defineProperty(Vue.prototype, '$data', dataDef)
   Object.defineProperty(Vue.prototype, '$props', propsDef)
 
   Vue.prototype.$set = set
   Vue.prototype.$delete = del
 
+  // $watch不仅提供给用户调用，还提供给内部处理new Vue()的watch属性
   Vue.prototype.$watch = function (
     expOrFn: string | Function,
+    // 合法的cb类型为Object、Function。先验证是否是Object，如果不是则直接当作Function，运行错误就抛出异常
     cb: any,
     options?: Object
   ): Function {
@@ -354,6 +393,9 @@ export function stateMixin (Vue: Class<Component>) {
     options = options || {}
     options.user = true
     const watcher = new Watcher(vm, expOrFn, cb, options)
+    // 这里要说明下immediate的用处。在初始化的时候，watch的回调函数，是不会执行的。如果需要让cb在初始化的时候就执行，则将immediate设为true
+    // 比如说有个组件，在初始化的时候，要根据props传来的tabIndex去加载不同接口，这时候在监控tabIndex的同时，需要开启immediate，避免第一次传值不生效
+    // 比如有个计算购物车总价的功能。初始化的时候购物车是空数组，在created时发出请求去取购物车数据。由于这个数据与初始化无关，因此不需要添加immediate
     if (options.immediate) {
       try {
         cb.call(vm, watcher.value)

@@ -25,14 +25,22 @@ export function validateProp (
   vm?: Component
 ): any {
   const prop = propOptions[key]
+  // 检查子组件props的每个key，是存在于父组件传来的props对象上，还是存在于props对象的原型上
   const absent = !hasOwn(propsData, key)
   let value = propsData[key]
   // boolean casting
+  // prop.type有2种格式：1、字符串，指定一种类型；2、数组，可以指定多种类型
   const booleanIndex = getTypeIndex(Boolean, prop.type)
+  // 处理prop含有Boolean类型的字段
   if (booleanIndex > -1) {
+    // 父组件未传递prop，且子组件中没有指定该prop的默认值，则将其赋值为false；其余类型如果没有指定默认值，则为undefined
+    // https://github.com/vuejs/vue/issues/5419
     if (absent && !hasOwn(prop, 'default')) {
       value = false
     } else if (value === '' || value === hyphenate(key)) {
+      // 针对value为空或者value与key同名的情况，如果Boolean值优先级比较高，则赋值为true
+      // Q 为什么要用key的连字符形式？
+      // A 可能是因为html对大小写不敏感，都是以连字符形式来解释大小写
       // only cast empty string / same name to boolean if
       // boolean has higher priority
       const stringIndex = getTypeIndex(String, prop.type)
@@ -66,11 +74,13 @@ export function validateProp (
  */
 function getPropDefaultValue (vm: ?Component, prop: PropOptions, key: string): any {
   // no default, return undefined
+  // 没有指定默认值default字段，则返回undefined
   if (!hasOwn(prop, 'default')) {
     return undefined
   }
   const def = prop.default
   // warn against non-factory defaults for Object & Array
+  // 对象或数组默认值必须从一个工厂函数获取
   if (process.env.NODE_ENV !== 'production' && isObject(def)) {
     warn(
       'Invalid default value for prop "' + key + '": ' +
@@ -81,6 +91,7 @@ function getPropDefaultValue (vm: ?Component, prop: PropOptions, key: string): a
   }
   // the raw prop value was also undefined from previous render,
   // return previous default value to avoid unnecessary watcher trigger
+  // TODO 避免props为改变的默认值引发watcher https://github.com/vuejs/vue/issues/4090
   if (vm && vm.$options.propsData &&
     vm.$options.propsData[key] === undefined &&
     vm._props[key] !== undefined
@@ -89,6 +100,7 @@ function getPropDefaultValue (vm: ?Component, prop: PropOptions, key: string): a
   }
   // call factory function for non-Function types
   // a value is Function if its prototype is function even across different execution context
+  // TODO 当default为函数时，函数中的this可以获取到什么？是可以获取到传入props的其他值，还是子组件的其他属性？
   return typeof def === 'function' && getType(prop.type) !== 'Function'
     ? def.call(vm)
     : def
@@ -179,7 +191,11 @@ function assertType (value: any, type: Function): {
  * because a simple equality check will fail when running
  * across different vms / iframes.
  */
+// 用来获取内置类型
+// 由于每个frame都有各自的Array构造函数，因此一个frame中的实例在另外一个frame中不会被识别，因此仅用instanceof Array无法正确判断是否是数组
+// 调用数组的内置toString()方法在所有浏览器都会返回"[object Array]"，可以用来检测是否是数组
 function getType (fn) {
+  // TODO IE9的function前有空白符，因此要加上\s*来兼容，未验证
   const match = fn && fn.toString().match(/^\s*function (\w+)/)
   return match ? match[1] : ''
 }
