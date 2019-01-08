@@ -64,6 +64,7 @@ export function eventsMixin (Vue: Class<Component>) {
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
+      // TODO lifeCircle待验证
       if (hookRE.test(event)) {
         vm._hasHookEvent = true
       }
@@ -123,7 +124,7 @@ export function eventsMixin (Vue: Class<Component>) {
   Vue.prototype.$emit = function (event: string): Component {
     const vm: Component = this
     // html的属性不区分大小写，js区分大小写
-    // 当在html上监听一个驼峰式的事件，而js事件列表中正好有与其对应的小写事件，会阴差阳错的对应上，这里要提醒下
+    // 当在html上监听一个驼峰式的事件（如<div @submitCart="submit"></div>），而js中正好emit与其对应的小写事件submitcart，会阴差阳错的对应上，这里要提醒下
     if (process.env.NODE_ENV !== 'production') {
       const lowerCaseEvent = event.toLowerCase()
       if (lowerCaseEvent !== event && vm._events[lowerCaseEvent]) {
@@ -138,7 +139,9 @@ export function eventsMixin (Vue: Class<Component>) {
     }
     let cbs = vm._events[event]
     if (cbs) {
+      // TODO 为什么要判断长度？
       cbs = cbs.length > 1 ? toArray(cbs) : cbs
+      // TODO 这里用toArray和Array.prototype.slice.call(arguments, 1)的区别？
       const args = toArray(arguments, 1)
       for (let i = 0, l = cbs.length; i < l; i++) {
         try {
