@@ -14,6 +14,7 @@ export function initEvents (vm: Component) {
   vm._events = Object.create(null)
   vm._hasHookEvent = false
   // init parent attached events
+  // TODO 待lifeCircle看完之后再阅读
   const listeners = vm.$options._parentListeners
   if (listeners) {
     updateComponentListeners(vm, listeners)
@@ -64,7 +65,7 @@ export function eventsMixin (Vue: Class<Component>) {
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
-      // TODO lifeCircle待验证
+      // TODO lifeCircle待验证；有那么多个内部事件钩子，为啥不用哈希查找而是集中在一个标识上？
       if (hookRE.test(event)) {
         vm._hasHookEvent = true
       }
@@ -74,7 +75,7 @@ export function eventsMixin (Vue: Class<Component>) {
 
   Vue.prototype.$once = function (event: string, fn: Function): Component {
     const vm: Component = this
-    // 由于$once只触发1次，因此解绑事件需要和fn同时执行，而且要在fn之前执行，否则会陷入死循环
+    // 由于$once只触发1次，因此解绑事件需要和fn同时执行，而且要在fn之前执行，否则如果在fn中又触发了同名事件，则会陷入死循环
     function on () {
       vm.$off(event, on)
       fn.apply(vm, arguments)
@@ -108,6 +109,8 @@ export function eventsMixin (Vue: Class<Component>) {
       return vm
     }
     // 如果没有指定解绑具体的事件处理函数，那么就解绑该事件下所有的处理函数
+    // 这里不能用arguments.length === 1来作为判断条件，因为在事件数组的循环中，fn是有值的，为undefined
+    // https://github.com/vuejs/vue/issues/6945
     if (!fn) {
       vm._events[event] = null
       return vm
