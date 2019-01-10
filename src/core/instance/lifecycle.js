@@ -34,10 +34,14 @@ export function initLifecycle (vm: Component) {
 
   // locate first non-abstract parent
   let parent = options.parent
+  // 针对非抽象组件，向上查找到第一个非抽象父组件
+  // 抽象组件：不渲染真实dom，如keep-alive、<transition>；不会出现在父子关系的路径上
   if (parent && !options.abstract) {
+    // 父组件是抽象的 && 父组件存在父级，则继续向上查找
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
+    // 查找完毕之后，将vm添加到父组件的$children上
     parent.$children.push(vm)
   }
 
@@ -333,6 +337,17 @@ export function callHook (vm: Component, hook: string) {
       }
     }
   }
+  /**
+   为了能够在html这样使用：
+   <child
+     @hook:beforeCreate="handleChildBeforeCreate"
+     @hook:created="handleChildCreated"
+     @hook:mounted="handleChildMounted"
+     @hook:生命周期钩子/>
+   */
+  // $emit内部有检测事件是否存在的逻辑。由于hook:这个特性用的比较少，每次直接$emit的话有点做无用功
+  // 因此加个_hasHookEvent判断，如果html中有监听的话，才emit事件
+  // 不用精确到每个事件名，毕竟比较少用
   if (vm._hasHookEvent) {
     vm.$emit('hook:' + hook)
   }

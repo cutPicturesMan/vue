@@ -60,6 +60,7 @@ export function initState (vm: Component) {
     observe(vm._data = {}, true /* asRootData */)
   }
   if (opts.computed) initComputed(vm, opts.computed)
+  // TODO Firefox 中原生提供了 Object.prototype.watch 函数，所以即使没有 opts.watch 选项，如果在火狐浏览器中依然能够通过原型链访问到原生的 Object.prototype.watch。但这其实不是我们想要的结果，所以这里加了一层判断避免把原生 watch 函数误认为是我们预期的 opts.watch 选项
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch)
   }

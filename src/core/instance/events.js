@@ -65,7 +65,7 @@ export function eventsMixin (Vue: Class<Component>) {
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
-      // TODO lifeCircle待验证；有那么多个内部事件钩子，为啥不用哈希查找而是集中在一个标识上？
+      // 只要在html中监听了任意一个生命周期钩子事件，在lifeCircle.js的callHook函数中就需要emit所有生命周期钩子事件
       if (hookRE.test(event)) {
         vm._hasHookEvent = true
       }

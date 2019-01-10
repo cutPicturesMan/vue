@@ -16,8 +16,10 @@ export function initMixin (Vue: Class<Component>) {
   Vue.prototype._init = function (options?: Object) {
     const vm: Component = this
     // a uid
+    // 每次实例化一个Vue实例，uid都会加1
     vm._uid = uid++
 
+    // TODO 了解window.performance API
     let startTag, endTag
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
@@ -27,8 +29,10 @@ export function initMixin (Vue: Class<Component>) {
     }
 
     // a flag to avoid this being observed
+    // 表明本对象是vue实例，而非普通的对象
     vm._isVue = true
     // merge options
+    // 如果是vue组件
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
@@ -38,6 +42,7 @@ export function initMixin (Vue: Class<Component>) {
       // 将options的多种情况，比如props的多种传参方式，转变为固定的一种
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
+        // new Vue()用于event Bus的时候，options为空
         options || {},
         vm
       )
@@ -91,8 +96,15 @@ export function initInternalComponent (vm: Component, options: InternalComponent
   }
 }
 
+/**
+ TODO 当使用Vue.extend创造一个子类并使用子类创造实例时，传入本函数的vm.constructor就不是Vue构造函数，而是子类Sub
+ const Sub = Vue.extend()
+ const s = new Sub()
+ */
+// 获取构造函数的options选项
 export function resolveConstructorOptions (Ctor: Class<Component>) {
   let options = Ctor.options
+  // 
   if (Ctor.super) {
     const superOptions = resolveConstructorOptions(Ctor.super)
     const cachedSuperOptions = Ctor.superOptions
