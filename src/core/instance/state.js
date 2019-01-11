@@ -356,10 +356,13 @@ export function stateMixin (Vue: Class<Component>) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
   // the object here.
+  // 将this.$data、this.$props代理到this._data、this._props上
+  // 通过声明dataDef/propsDef而不是直接在Object.defineProperty中使用{}的方式，来解决flow对Object.defineProperty的支持不是很好的问题
   const dataDef = {}
   dataDef.get = function () { return this._data }
   const propsDef = {}
   propsDef.get = function () { return this._props }
+  // $data/$props为只读属性，不小心对其进行修改时，在非生产环境下进行提示
   if (process.env.NODE_ENV !== 'production') {
     dataDef.set = function () {
       warn(
@@ -373,7 +376,13 @@ export function stateMixin (Vue: Class<Component>) {
     }
   }
   // Q 为什么要代理？直接访问_data、_props不就好了吗？
-  // 将this.$data、this.$props代理到this._data、this._props上
+  /**
+   * flow对Object.defineProperty的支持不是很好，Object.defineProperty第三个参数需要按照如下处理才不会出错
+   * https://github.com/facebook/flow/issues/285
+    Object.defineProperty(Vue.prototype, '$data', ({
+      get : function () { return this._data }
+    }: Object))
+   */
   Object.defineProperty(Vue.prototype, '$data', dataDef)
   Object.defineProperty(Vue.prototype, '$props', propsDef)
 

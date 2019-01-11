@@ -14,6 +14,9 @@ function Vue (options) {
   this._init(options)
 }
 
+// 经过以下4个步骤：
+//    **Mixin() -> core/index.js -> runtime/index.js -> entry-runtime-with-compiler.js
+// vue.prototype增加了对应的属性(http://hcysun.me/vue-design/appendix/vue-prototype.html)
 initMixin(Vue)
 stateMixin(Vue)
 eventsMixin(Vue)

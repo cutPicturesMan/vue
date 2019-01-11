@@ -20,6 +20,7 @@ export function initMixin (Vue: Class<Component>) {
     vm._uid = uid++
 
     // TODO 了解window.performance API
+    // https://developer.mozilla.org/zh-CN/docs/Web/API/Performance/measure
     let startTag, endTag
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
@@ -42,7 +43,7 @@ export function initMixin (Vue: Class<Component>) {
       // 将options的多种情况，比如props的多种传参方式，转变为固定的一种
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
-        // new Vue()用于event Bus的时候，options为空
+        // options为透传进来的参数。当new Vue()用于event Bus的时候，options为空
         options || {},
         vm
       )
@@ -104,7 +105,7 @@ export function initInternalComponent (vm: Component, options: InternalComponent
 // 获取构造函数的options选项
 export function resolveConstructorOptions (Ctor: Class<Component>) {
   let options = Ctor.options
-  // 
+  // super与Vue.extend有关，是子类才有的属性
   if (Ctor.super) {
     const superOptions = resolveConstructorOptions(Ctor.super)
     const cachedSuperOptions = Ctor.superOptions
