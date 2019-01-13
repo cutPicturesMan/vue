@@ -79,7 +79,6 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   // Vue.mixin
   // Vue.extend、子类的cid
   // Vue.component、Vue.directive、Vue.filter
-  // TODO 分析以下4个步骤的具体代码
   initUse(Vue)
   initMixin(Vue)
   initExtend(Vue)
