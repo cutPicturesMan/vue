@@ -87,6 +87,8 @@ export default ({
    * Check if a tag is reserved so that it cannot be registered as a
    * component. This is platform-dependent and may be overwritten.
    */
+  // 检查html标签是否是html保留字
+  // 该方法依赖不同的平台，因此有可能会被重写
   isReservedTag: no,
 
   /**

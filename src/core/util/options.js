@@ -257,6 +257,7 @@ function checkComponents (options: Object) {
 }
 
 export function validateComponentName (name: string) {
+  // 组件名称只能包含字母数字下划线、连字符，并且要以字母开头
   if (!/^[a-zA-Z][\w-]*$/.test(name)) {
     warn(
       'Invalid component name: "' + name + '". Component names ' +
@@ -264,6 +265,7 @@ export function validateComponentName (name: string) {
       'and must start with a letter.'
     )
   }
+  // 内置组件 || html保留标签
   if (isBuiltInTag(name) || config.isReservedTag(name)) {
     warn(
       'Do not use built-in or reserved HTML elements as component ' +
@@ -375,6 +377,7 @@ export function mergeOptions (
     checkComponents(child)
   }
 
+  // TODO child有可能是Vue构造函数以及Vue.extend创造出来的子类？
   if (typeof child === 'function') {
     child = child.options
   }
@@ -382,7 +385,7 @@ export function mergeOptions (
   normalizeProps(child, vm)
   normalizeInject(child, vm)
   normalizeDirectives(child)
-  
+
   // Apply extends and mixins on the child options,
   // but only if it is a raw options object that isn't
   // the result of another mergeOptions call.

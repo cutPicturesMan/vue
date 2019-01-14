@@ -96,6 +96,7 @@ export function toNumber (val: string): number | string {
  * Make a map and return a function for checking if a key
  * is in that map.
  */
+// 查找某个属性值是否在对象上
 export function makeMap (
   str: string,
   expectsLowerCase?: boolean
@@ -113,6 +114,7 @@ export function makeMap (
 /**
  * Check if a tag is a built-in tag.
  */
+// TODO <component></component>是内置标签？？？
 export const isBuiltInTag = makeMap('slot,component', true)
 
 /**
