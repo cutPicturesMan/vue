@@ -25,12 +25,16 @@ import {
  * how to merge a parent option value and a child option
  * value into the final value.
  */
+// 自定义合并策略的对象
+// https://cn.vuejs.org/v2/api/#optionMergeStrategies
 const strats = config.optionMergeStrategies
 
 /**
  * Options with restrictions
  */
 if (process.env.NODE_ENV !== 'production') {
+  // el和propsData这两个属性，只能在new Vue的时候使用，不能在子组件中使用
+  // 非生产环境下进行提示
   strats.el = strats.propsData = function (parent, child, vm, key) {
     if (!vm) {
       warn(
@@ -117,6 +121,7 @@ strats.data = function (
   vm?: Component
 ): ?Function {
   if (!vm) {
+    // 如果子组件的data不是一个函数，则提示
     if (childVal && typeof childVal !== 'function') {
       process.env.NODE_ENV !== 'production' && warn(
         'The "data" option should be a function ' +
@@ -241,6 +246,7 @@ strats.provide = mergeDataOrFn
 /**
  * Default strategy.
  */
+// 默认的策略：有子选项就使用子选项，否则使用父选项
 const defaultStrat = function (parentVal: any, childVal: any): any {
   return childVal === undefined
     ? parentVal
@@ -278,11 +284,31 @@ export function validateComponentName (name: string) {
  * Ensure all props option syntax are normalized into the
  * Object-based format.
  */
+/**
+ 将props的三种形式，转化为第三种最完整的格式：
+ 1、props: ['title', 'list']
+ 2、props: {
+    title: String,
+    list: Array
+ }
+ 3、props: {
+    title: {
+      type: String
+    },
+    likes: {
+      type: Array,
+      default(){
+        return [];
+      }
+    }
+ }
+ */
 function normalizeProps (options: Object, vm: ?Component) {
   const props = options.props
   if (!props) return
   const res = {}
   let i, val, name
+  // 针对第1点数组形式的props进行转化
   if (Array.isArray(props)) {
     i = props.length
     while (i--) {
@@ -295,11 +321,14 @@ function normalizeProps (options: Object, vm: ?Component) {
       }
     }
   } else if (isPlainObject(props)) {
+    // 针对第2、3点对象形式的props进行转化
     for (const key in props) {
       val = props[key]
       name = camelize(key)
       res[name] = isPlainObject(val)
+        // props属性是一个对象，则保持原样
         ? val
+        // 否则赋值给type
         : { type: val }
     }
   } else if (process.env.NODE_ENV !== 'production') {
@@ -315,6 +344,20 @@ function normalizeProps (options: Object, vm: ?Component) {
 /**
  * Normalize all injections into Object-based format
  */
+/**
+ 将inject的三种形式，转化为第三种最完整的格式：
+ 1、inject: ['foo']
+ 2、inject: {
+      foo: 'bar'
+   }
+ 3、inject: {
+      foo: {
+        from: 'bar',
+        // 对非原始值使用一个工厂方法
+        default: () => [1, 2, 3]
+      }
+   }
+ */
 function normalizeInject (options: Object, vm: ?Component) {
   const inject = options.inject
   if (!inject) return
@@ -327,6 +370,7 @@ function normalizeInject (options: Object, vm: ?Component) {
     for (const key in inject) {
       const val = inject[key]
       normalized[key] = isPlainObject(val)
+        // TODO from是必传参数？所以这里要设置一下默认的from？
         ? extend({ from: key }, val)
         : { from: val }
     }
@@ -342,6 +386,7 @@ function normalizeInject (options: Object, vm: ?Component) {
 /**
  * Normalize raw function directives into object format.
  */
+// 将局部指令的函数形式转为对象形式
 function normalizeDirectives (options: Object) {
   const dirs = options.directives
   if (dirs) {
@@ -368,12 +413,15 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
  * Merge two option objects into a new one.
  * Core utility used in both instantiation and inheritance.
  */
+// 将两个option对象合并为一个，在new Vue()、Vue.extend、Vue.mixin时使用
+// 仅在new Vue()时会传入第三个参数，其余不会
 export function mergeOptions (
   parent: Object,
   child: Object,
   vm?: Component
 ): Object {
   if (process.env.NODE_ENV !== 'production') {
+    // 检查组件名称的合法性
     checkComponents(child)
   }
 
@@ -390,6 +438,8 @@ export function mergeOptions (
   // but only if it is a raw options object that isn't
   // the result of another mergeOptions call.
   // Only merged options has the _base property.
+  // 只有已合并的options，才有_base属性
+  // TODO extend和mixin的稍后看
   if (!child._base) {
     if (child.extends) {
       parent = mergeOptions(parent, child.extends, vm)
@@ -407,11 +457,14 @@ export function mergeOptions (
     mergeField(key)
   }
   for (key in child) {
+    // 只有parent上没有的属性，才需要mergeField
     if (!hasOwn(parent, key)) {
       mergeField(key)
     }
   }
   function mergeField (key) {
+    // 如果key在config.optionMergeStrategies上配置了对应的策略函数，则使用该函数
+    // 否则使用默认的策略函数
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)
   }
