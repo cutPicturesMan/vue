@@ -37,6 +37,7 @@ export function initExtend (Vue: GlobalAPI) {
     Sub.prototype = Object.create(Super.prototype)
     Sub.prototype.constructor = Sub
     Sub.cid = cid++
+    // TODO 父子data选项都是函数？
     Sub.options = mergeOptions(
       Super.options,
       extendOptions

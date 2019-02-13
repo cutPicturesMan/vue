@@ -32,9 +32,10 @@ const strats = config.optionMergeStrategies
 /**
  * Options with restrictions
  */
+// 非生产环境下进行提示
+// TODO 生产环境下el、propsData的处理函数为undefined，同样走defaultStrat。此时的值以子组件为主，有没有问题？
 if (process.env.NODE_ENV !== 'production') {
   // el和propsData这两个属性，只能在new Vue的时候使用，不能在子组件中使用
-  // 非生产环境下进行提示
   strats.el = strats.propsData = function (parent, child, vm, key) {
     if (!vm) {
       warn(
@@ -49,6 +50,7 @@ if (process.env.NODE_ENV !== 'production') {
 /**
  * Helper that recursively merges two data objects together.
  */
+// 递归的将两个对象合并在一起
 function mergeData (to: Object, from: ?Object): Object {
   if (!from) return to
   let key, toVal, fromVal
@@ -73,16 +75,20 @@ function mergeData (to: Object, from: ?Object): Object {
 /**
  * Data
  */
+// TODO
 export function mergeDataOrFn (
   parentVal: any,
   childVal: any,
   vm?: Component
 ): ?Function {
+  // 在vue子组件中
   if (!vm) {
     // in a Vue.extend merge, both should be functions
+    // 当子data不存在时，就不需要合并，直接返回父data
     if (!childVal) {
       return parentVal
     }
+    // 当父data不存在时，此时子data肯定存在，返回子data
     if (!parentVal) {
       return childVal
     }
@@ -91,6 +97,8 @@ export function mergeDataOrFn (
     // merged result of both functions... no need to
     // check if parentVal is a function here because
     // it has to be a function to pass previous merges.
+    // 当父data和子data都存在时，返回一个函数
+    // 执行该函数会返回了父子data合并之后的值
     return function mergedDataFn () {
       return mergeData(
         typeof childVal === 'function' ? childVal.call(this, this) : childVal,
@@ -122,6 +130,7 @@ strats.data = function (
 ): ?Function {
   if (!vm) {
     // 如果子组件的data不是一个函数，则提示
+    // 并且直接将父组件的data作为合并后的data
     if (childVal && typeof childVal !== 'function') {
       process.env.NODE_ENV !== 'production' && warn(
         'The "data" option should be a function ' +
@@ -135,6 +144,7 @@ strats.data = function (
     return mergeDataOrFn(parentVal, childVal)
   }
 
+  // 传入vm表示是Vue构造函数，而非子组件
   return mergeDataOrFn(parentVal, childVal, vm)
 }
 
@@ -453,15 +463,18 @@ export function mergeOptions (
 
   const options = {}
   let key
+  // 先循环父option对象的属性，将其独有的属性、与子option共有的属性合并到options上
   for (key in parent) {
     mergeField(key)
   }
   for (key in child) {
-    // 只有parent上没有的属性，才需要mergeField
+    // 子option对象的属性不在父option上，则表示是其单独的属性，需要合并到options上
+    // 共有的属性已经合并了
     if (!hasOwn(parent, key)) {
       mergeField(key)
     }
   }
+  // TODO 在一个函数内部声明函数，与在外部声明函数的区别？
   function mergeField (key) {
     // 如果key在config.optionMergeStrategies上配置了对应的策略函数，则使用该函数
     // 否则使用默认的策略函数
