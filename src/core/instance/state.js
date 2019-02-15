@@ -74,6 +74,7 @@ function initProps (vm: Component, propsOptions: Object) {
   // cache prop keys so that future props updates can iterate using Array
   // instead of dynamic object key enumeration.
   // 缓存props的所有key。这样在lifeCircle更新时就可以直接使用数组，而不需要动态枚举对象取key值
+  // TODO https://github.com/vuejs/vue/issues/4767
   // Q 1、lifeCircle更新是什么样的过程？2、for...in枚举key值与循环数组的性能差距？
   const keys = vm.$options._propKeys = []
   const isRoot = !vm.$parent

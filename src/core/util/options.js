@@ -50,7 +50,7 @@ if (process.env.NODE_ENV !== 'production') {
 /**
  * Helper that recursively merges two data objects together.
  */
-// 递归的将两个对象合并在一起
+// 将from的属性合并到to中
 function mergeData (to: Object, from: ?Object): Object {
   if (!from) return to
   let key, toVal, fromVal
@@ -59,15 +59,18 @@ function mergeData (to: Object, from: ?Object): Object {
     key = keys[i]
     toVal = to[key]
     fromVal = from[key]
+    // 如果目标对象上没有对应key，则将该key合并到目标对象上
     if (!hasOwn(to, key)) {
       set(to, key, fromVal)
     } else if (
+      // 如果目标对象、源对象上均有相同key，该key值是对象且不相等，则递归合并
       toVal !== fromVal &&
       isPlainObject(toVal) &&
       isPlainObject(fromVal)
     ) {
       mergeData(toVal, fromVal)
     }
+    // 其余情况则不处理，均以目标对象的key值为最后值
   }
   return to
 }
@@ -75,7 +78,8 @@ function mergeData (to: Object, from: ?Object): Object {
 /**
  * Data
  */
-// TODO
+// Q mergeDataOrFn为什么返回函数，而不是合并之后的值？
+// A 因为data中有可能会用到props来赋值数据，因此需要在props初始化完毕后再进行合并
 export function mergeDataOrFn (
   parentVal: any,
   childVal: any,
@@ -84,11 +88,12 @@ export function mergeDataOrFn (
   // 在vue子组件中
   if (!vm) {
     // in a Vue.extend merge, both should be functions
-    // 当子data不存在时，就不需要合并，直接返回父data
+    // 直接返回的parentVal函数和childVal函数，在初始化时会进行作用域绑定
+    // 当子data不存在时，就不需要合并，直接返回父data函数
     if (!childVal) {
       return parentVal
     }
-    // 当父data不存在时，此时子data肯定存在，返回子data
+    // 当父data不存在时，此时子data肯定存在，返回子data函数
     if (!parentVal) {
       return childVal
     }
@@ -97,6 +102,8 @@ export function mergeDataOrFn (
     // merged result of both functions... no need to
     // check if parentVal is a function here because
     // it has to be a function to pass previous merges.
+    // TODO 为什么父data一定是函数形式？以及这个issue：https://github.com/vuejs/vue/pull/6025
+
     // 当父data和子data都存在时，返回一个函数
     // 执行该函数会返回了父子data合并之后的值
     return function mergedDataFn () {
@@ -111,6 +118,7 @@ export function mergeDataOrFn (
       const instanceData = typeof childVal === 'function'
         ? childVal.call(vm, vm)
         : childVal
+      // TODO parentVal什么时候为函数？
       const defaultData = typeof parentVal === 'function'
         ? parentVal.call(vm, vm)
         : parentVal
@@ -156,11 +164,15 @@ function mergeHook (
   childVal: ?Function | ?Array<Function>
 ): ?Array<Function> {
   return childVal
+    // 子hook存在，则判断父hook是否存在
     ? parentVal
+      // 父hook存在，则与子hook合并成一个数组（父hook永远是数组）
       ? parentVal.concat(childVal)
+      // 父hook不存在，则返回数组形式的子hook
       : Array.isArray(childVal)
         ? childVal
         : [childVal]
+    // 子hook不存在，直接返回父hook
     : parentVal
 }
 
@@ -181,6 +193,9 @@ function mergeAssets (
   vm?: Component,
   key: string
 ): Object {
+  // TODO 这里为什么不用Object.assign({}, parentVal || {})，而是要生成一个以parentVal为原型的对象res？
+  // TODO Object.assign和Object.create的区别
+  // TODO 对象深复制
   const res = Object.create(parentVal || null)
   if (childVal) {
     process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)
@@ -207,13 +222,17 @@ strats.watch = function (
   key: string
 ): ?Object {
   // work around Firefox's Object.prototype.watch...
+  // 由于Firefox的Object原型上自带watch属性，当option没有声明watch属性时，传入本函数的有可能是Object.prototype.watch，因此要重置为undefined
   if (parentVal === nativeWatch) parentVal = undefined
   if (childVal === nativeWatch) childVal = undefined
   /* istanbul ignore if */
+  // 从父watch上复制一份出来，避免共用同一个对象
   if (!childVal) return Object.create(parentVal || null)
+  // watch只能为对象
   if (process.env.NODE_ENV !== 'production') {
     assertObjectType(key, childVal, vm)
   }
+  // 不存在父watch，直接使用子watch
   if (!parentVal) return childVal
   const ret = {}
   extend(ret, parentVal)
@@ -464,6 +483,7 @@ export function mergeOptions (
   const options = {}
   let key
   // 先循环父option对象的属性，将其独有的属性、与子option共有的属性合并到options上
+  // TODO 这里还需要加上FireFox下Object.prototype.watch的解释
   for (key in parent) {
     mergeField(key)
   }
