@@ -215,6 +215,7 @@ ASSET_TYPES.forEach(function (type) {
  * Watchers hashes should not overwrite one
  * another, so we merge them as arrays.
  */
+// 父子watch合并时，不应该互相重写，因此将父子watch的每个key合并为数组形式
 strats.watch = function (
   parentVal: ?Object,
   childVal: ?Object,
@@ -226,7 +227,7 @@ strats.watch = function (
   if (parentVal === nativeWatch) parentVal = undefined
   if (childVal === nativeWatch) childVal = undefined
   /* istanbul ignore if */
-  // 从父watch上复制一份出来，避免共用同一个对象
+  // 从父watch上复制一份出来，避免共用同一个对象，从而导致父watch修改时影响到子watch
   if (!childVal) return Object.create(parentVal || null)
   // watch只能为对象
   if (process.env.NODE_ENV !== 'production') {
@@ -239,11 +240,14 @@ strats.watch = function (
   for (const key in childVal) {
     let parent = ret[key]
     const child = childVal[key]
+    // 子watch的key同时存在于父watch上 && 父watch的key不是数组（Vue.extend创建的父watch的key有可能不是数组）
     if (parent && !Array.isArray(parent)) {
       parent = [parent]
     }
     ret[key] = parent
+      // 将父watch与子watch合并为一个数组
       ? parent.concat(child)
+      // 确保子watch的key为数组
       : Array.isArray(child) ? child : [child]
   }
   return ret
@@ -264,9 +268,12 @@ strats.computed = function (
   if (childVal && process.env.NODE_ENV !== 'production') {
     assertObjectType(key, childVal, vm)
   }
+  // 父级不存在，直接返回子级
   if (!parentVal) return childVal
+  // TODO 为什么不用Object.assign({}, parentVal)
   const ret = Object.create(null)
   extend(ret, parentVal)
+  // 父子同时存在，则用子级覆盖父级
   if (childVal) extend(ret, childVal)
   return ret
 }
@@ -455,6 +462,7 @@ export function mergeOptions (
   }
 
   // TODO child有可能是Vue构造函数以及Vue.extend创造出来的子类？
+  // TODO https://github.com/vuejs/vue/issues/9198
   if (typeof child === 'function') {
     child = child.options
   }
@@ -467,8 +475,9 @@ export function mergeOptions (
   // but only if it is a raw options object that isn't
   // the result of another mergeOptions call.
   // Only merged options has the _base property.
+  // 处理未合并过的option对象
   // 只有已合并的options，才有_base属性
-  // TODO extend和mixin的稍后看
+  // TODO https://github.com/vuejs/vue/issues/8865
   if (!child._base) {
     if (child.extends) {
       parent = mergeOptions(parent, child.extends, vm)
