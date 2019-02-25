@@ -33,11 +33,12 @@ export function initLifecycle (vm: Component) {
   const options = vm.$options
 
   // locate first non-abstract parent
+  // 针对非抽象组件，向上查找到距离最近的第一个非抽象父组件
+  // 【抽象组件】不渲染真实dom，如keep-alive、<transition>；不会出现在父子关系的路径上
   let parent = options.parent
-  // 针对非抽象组件，向上查找到第一个非抽象父组件
-  // 抽象组件：不渲染真实dom，如keep-alive、<transition>；不会出现在父子关系的路径上
   if (parent && !options.abstract) {
     // 父组件是抽象的 && 父组件存在父级，则继续向上查找
+    // TODO options.parent的parent与$parent的区别？
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
