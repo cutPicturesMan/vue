@@ -11,6 +11,8 @@ function getShouldDecode (href: boolean): boolean {
 }
 
 // #3663: IE encodes newlines inside attribute values while other browsers don't
+// TODO 装完虚拟机之后看下：https://github.com/vuejs/vue/issues/3663
 export const shouldDecodeNewlines = inBrowser ? getShouldDecode(false) : false
 // #6828: chrome encodes content in a[href]
+// TODO https://github.com/vuejs/vue/issues/6828
 export const shouldDecodeNewlinesForHref = inBrowser ? getShouldDecode(true) : false

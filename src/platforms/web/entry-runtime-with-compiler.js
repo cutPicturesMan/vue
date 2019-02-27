@@ -65,9 +65,10 @@ Vue.prototype.$mount = function (
         return this
       }
     } else if (el) {
-      // 获取Element形式的el的字符串形式
+      // 获取Element形式的el的字符串
       template = getOuterHTML(el)
     }
+    // html字符串模板
     if (template) {
       /* istanbul ignore if */
       if (process.env.NODE_ENV !== 'production' && config.performance && mark) {

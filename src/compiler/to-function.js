@@ -25,6 +25,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
     options?: CompilerOptions,
     vm?: Component
   ): CompiledFunctionResult {
+    // TODO 以下3行是为了处理ssr内部模板错误？
     options = extend({}, options)
     const warn = options.warn || baseWarn
     delete options.warn
@@ -32,6 +33,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production') {
       // detect possible CSP restriction
+      // TODO 了解CSP
       try {
         new Function('return 1')
       } catch (e) {
@@ -49,6 +51,8 @@ export function createCompileToFunctionFn (compile: Function): Function {
 
     // check cache
     const key = options.delimiters
+      // options.delimiters为数组，先调用数组的valueOf()方法，数组的valueOf()方法经过重写返回的是数组本身，不是基本值，转而调用toString()方法
+      // 数组的默认toString()方法经过了重新定义，将所有单元字符串化以后再用","连接起来
       ? String(options.delimiters) + template
       : template
     if (cache[key]) {

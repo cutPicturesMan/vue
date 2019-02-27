@@ -25,13 +25,16 @@ export function createCompilerCreator (baseCompile: Function): Function {
         }
         // merge custom directives
         if (options.directives) {
+          // 需要复制原型链上的属性，因此不能用Object.assign
           finalOptions.directives = extend(
+            // TODO baseOptions.directives有可能含有原型链上的属性，因此不能用Object.assign，要用Object.create？
             Object.create(baseOptions.directives || null),
             options.directives
           )
         }
         // copy other options
         for (const key in options) {
+          // TODO 为何options中modules、directives属性需要与baseOptions对象合并，而剩余的属性直接赋值即可？
           if (key !== 'modules' && key !== 'directives') {
             finalOptions[key] = options[key]
           }
