@@ -4,6 +4,8 @@ import { extend } from 'shared/util'
 import { detectErrors } from './error-detector'
 import { createCompileToFunctionFn } from './to-function'
 
+// TODO 为了精简代码，createCompilerCreator函数采用闭包的方式，将共有的处理部分，放到了createCompiler之中
+// 讲解顺序为：闭包 -> 闭包例子 -> 这里这么写的原因
 export function createCompilerCreator (baseCompile: Function): Function {
   return function createCompiler (baseOptions: CompilerOptions) {
     function compile (
@@ -43,6 +45,7 @@ export function createCompilerCreator (baseCompile: Function): Function {
 
       const compiled = baseCompile(template, finalOptions)
       if (process.env.NODE_ENV !== 'production') {
+        // detectErrors函数返回的是一个数组，因此需要通过apply将数组分解成多个参数，再push进去
         errors.push.apply(errors, detectErrors(compiled.ast))
       }
       compiled.errors = errors

@@ -8,7 +8,7 @@
  * Original code by Erik Arvidsson, Mozilla Public License
  * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
  */
-
+// TODO Resig写htmlParser的原因：https://johnresig.com/blog/pure-javascript-html-parser/；https://johnresig.com/files/htmlparser.js
 import { makeMap, no } from 'shared/util'
 import { isNonPhrasingTag } from 'web/compiler/util'
 
