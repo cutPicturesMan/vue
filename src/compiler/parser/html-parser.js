@@ -13,30 +13,57 @@ import { makeMap, no } from 'shared/util'
 import { isNonPhrasingTag } from 'web/compiler/util'
 
 // Regular Expressions for parsing tags and attributes
+// html 标签属性值的4种声明方式：
+// 1、双引号：class="some-class"
+// 2、单引号：class='some-class'
+// 3、不使用引号：class=some-class
+// 4、单独的属性名：disabled
 const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
 // could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
 // but for Vue templates we can enforce a simple charset
+// TODO 了解下xml标签规范
+// ncname匹配字母、下划线开头，加上任意多个的字符、中横线、和`.`
 const ncname = '[a-zA-Z_][\\w\\-\\.]*'
 const qnameCapture = `((?:${ncname}\\:)?${ncname})`
 const startTagOpen = new RegExp(`^<${qnameCapture}`)
+// 标签可能是一元标签，如<br />
 const startTagClose = /^\s*(\/?)>/
 const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`)
+// 匹配 <!DOCTYPE HTML>
 const doctype = /^<!DOCTYPE [^>]+>/i
 // #7298: escape - to avoid being pased as HTML comment when inlined in page
+// TODO vue代码内联到html中长什么样？
 const comment = /^<!\--/
+// 条件注释节点，如<!--[if IE 8]>...<![endif]-->
+// https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/compatibility/ms537512(v=vs.85)
 const conditionalComment = /^<!\[/
+
+// TODO #8359
+// https://github.com/vuejs/vue/pull/8359
+// https://bugzilla.mozilla.org/show_bug.cgi?id=369778
 
 // Special Elements (can contain anything)
 export const isPlainTextElement = makeMap('script,style,textarea', true)
 const reCache = {}
 
+/**
+ chrome下，当获取的innerHTML中含有<a>标签，且其href属性中含有制表符，则制表符会转为"&#9;"；如果含有换行符，会转为"&#10;"
+ <div id="link-box">
+     <a href="https://www.baidu.com	">aaaa</a>
+     <a href="https://www.baidu.com
+     ">aaaa</a>
+ </div>
+
+ <a href="https://www.baidu.com&#9;">aaaa</a>
+ <a href="https://www.baidu.com&#10;">aaaa</a>
+ */
 const decodingMap = {
   '&lt;': '<',
   '&gt;': '>',
   '&quot;': '"',
   '&amp;': '&',
-  '&#10;': '\n',
-  '&#9;': '\t'
+  '&#10;': '\n',  // 换行符
+  '&#9;': '\t'  // 制表符
 }
 const encodedAttr = /&(?:lt|gt|quot|amp);/g
 const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#10|#9);/g
