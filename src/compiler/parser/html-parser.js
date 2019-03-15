@@ -22,7 +22,7 @@ const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s
 // could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
 // but for Vue templates we can enforce a simple charset
 // TODO 了解下xml标签规范
-// ncname匹配字母、下划线开头，加上任意多个的字符、中横线、和`.`
+// ncname匹配字母、下划线开头，加上任意多个的字符、中横线、和`.`的标签名
 const ncname = '[a-zA-Z_][\\w\\-\\.]*'
 const qnameCapture = `((?:${ncname}\\:)?${ncname})`
 const startTagOpen = new RegExp(`^<${qnameCapture}`)
@@ -32,10 +32,15 @@ const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`)
 // 匹配 <!DOCTYPE HTML>
 const doctype = /^<!DOCTYPE [^>]+>/i
 // #7298: escape - to avoid being pased as HTML comment when inlined in page
+// TODO https://github.com/vuejs/vue/issues/7298
 // TODO vue代码内联到html中长什么样？
 const comment = /^<!\--/
-// 条件注释节点，如<!--[if IE 8]>...<![endif]-->
+// TODO 条件注释节点，如<!--[if IE 8]>...<![endif]-->
 // https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/compatibility/ms537512(v=vs.85)
+// https://zh.wikipedia.org/wiki/%E6%9D%A1%E4%BB%B6%E6%B3%A8%E9%87%8A
+// https://css-tricks.com/downlevel-hidden-downlevel-revealed/
+// 【Downlevel hidden】Show only in some subset of IE < 10's
+// 【Downlevel revealed】Show some subset of IE < 10's plus every non-IE browser.
 const conditionalComment = /^<!\[/
 
 // TODO #8359
@@ -68,15 +73,23 @@ const decodingMap = {
 const encodedAttr = /&(?:lt|gt|quot|amp);/g
 const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#10|#9);/g
 
-// #5992
+// #5992 https://github.com/vuejs/vue/issues/5992
+// 紧跟在<pre>开始标签后的换行符会被省略，vue原本不会省略，这里处理下
+// TODO 是在ssr渲染的时候会出现这种情况，还是客户端渲染的时候会出现？
 const isIgnoreNewlineTag = makeMap('pre,textarea', true)
 const shouldIgnoreFirstNewline = (tag, html) => tag && isIgnoreNewlineTag(tag) && html[0] === '\n'
 
+// 将&lt;等字符实体解码为html字符
 function decodeAttr (value, shouldDecodeNewlines) {
   const re = shouldDecodeNewlines ? encodedAttrWithNewLines : encodedAttr
   return value.replace(re, match => decodingMap[match])
 }
 
+/**
+ * 解析html字符串
+ * @param html
+ * @param options Object
+ */
 export function parseHTML (html, options) {
   const stack = []
   const expectHTML = options.expectHTML
@@ -87,26 +100,39 @@ export function parseHTML (html, options) {
   while (html) {
     last = html
     // Make sure we're not in a plaintext content element like script/style
+    // 确保即将解析的内容不是纯文本
     if (!lastTag || !isPlainTextElement(lastTag)) {
       let textEnd = html.indexOf('<')
+      // html以"<"开头
       if (textEnd === 0) {
         // Comment:
+        // 如果html以<!--开头
         if (comment.test(html)) {
           const commentEnd = html.indexOf('-->')
 
+          // 如果存在注释结尾节点。由于commentEnd肯定比0大（当前的html以"<!--"开头）。这里的>=0是表示有找到commentEnd
           if (commentEnd >= 0) {
+            // 如果用户指定html中需要保留注释
             if (options.shouldKeepComment) {
+              // 取到注释中的文字内容，传给options.comment函数。4表示注释开头为<!--的字符长度为4
               options.comment(html.substring(4, commentEnd))
             }
+            // 从html中剔除掉当前的注释字符串
             advance(commentEnd + 3)
             continue
           }
         }
 
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+        // 如果html以<![开头
+        // Q vue把Downlevel-revealed条件注释去掉的原因？
+        // A Downlevel-revealed在vue中的范围为IE9、非IE浏览器，因此等于全显示，可以去掉
+        // TODO <![ 是错误语法，浏览器会将其解析为注释节点
+        // https://stackoverflow.com/questions/25067709/html-comment-behavior/25068759#25068759
         if (conditionalComment.test(html)) {
           const conditionalEnd = html.indexOf(']>')
 
+          // 如果找到downlevel-revealed注释节点，则跳过
           if (conditionalEnd >= 0) {
             advance(conditionalEnd + 2)
             continue
@@ -114,6 +140,7 @@ export function parseHTML (html, options) {
         }
 
         // Doctype:
+        // 跳过html字符串中的整个doctype节点
         const doctypeMatch = html.match(doctype)
         if (doctypeMatch) {
           advance(doctypeMatch[0].length)
@@ -121,6 +148,7 @@ export function parseHTML (html, options) {
         }
 
         // End tag:
+        // 跳过html字符串中的标签结束节点
         const endTagMatch = html.match(endTag)
         if (endTagMatch) {
           const curIndex = index
@@ -168,6 +196,7 @@ export function parseHTML (html, options) {
         options.chars(text)
       }
     } else {
+      // 解析纯文本
       let endTagLength = 0
       const stackedTag = lastTag.toLowerCase()
       const reStackedTag = reCache[stackedTag] || (reCache[stackedTag] = new RegExp('([\\s\\S]*?)(</' + stackedTag + '[^>]*>)', 'i'))
@@ -203,6 +232,7 @@ export function parseHTML (html, options) {
   // Clean up any remaining tags
   parseEndTag()
 
+  // 截取html字符串
   function advance (n) {
     index += n
     html = html.substring(n)
