@@ -2,6 +2,9 @@
 
 import { makeMap } from 'shared/util'
 
+// 由于html标签是区分大小写的，因此在使用makeMap()创建标签映射时，也要区分大小写，即不能传第二个参数
+
+// 一元标签
 export const isUnaryTag = makeMap(
   'area,base,br,col,embed,frame,hr,img,input,isindex,keygen,' +
   'link,meta,param,source,track,wbr'
@@ -15,6 +18,9 @@ export const canBeLeftOpenTag = makeMap(
 
 // HTML5 tags https://html.spec.whatwg.org/multipage/indices.html#elements-3
 // Phrasing Content https://html.spec.whatwg.org/multipage/dom.html#phrasing-content
+// TODO
+// 缺少：main,menu,nav,ol,p,pre,section,table,ul ?
+// 应排除：menuitem,meta ?
 export const isNonPhrasingTag = makeMap(
   'address,article,aside,base,blockquote,body,caption,col,colgroup,dd,' +
   'details,dialog,div,dl,dt,fieldset,figcaption,figure,footer,form,' +

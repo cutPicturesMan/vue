@@ -14,19 +14,20 @@ import { isNonPhrasingTag } from 'web/compiler/util'
 
 // Regular Expressions for parsing tags and attributes
 // html 标签属性值的4种声明方式：
-// 1、双引号：class="some-class"
-// 2、单引号：class='some-class'
-// 3、不使用引号：class=some-class
-// 4、单独的属性名：disabled
+// 1、单独的属性名：disabled。^\s*([^\s"'<>\/=]+)
+// 2、双引号：class="some-class"。"([^"]*)"+
+// 3、单引号：class='some-class'。'([^']*)'+
+// 4、不使用引号：class=some-class。([^\s"'=<>`]+)
 const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
 // could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
 // but for Vue templates we can enforce a simple charset
 // TODO 了解下xml标签规范
-// ncname匹配字母、下划线开头，加上任意多个的字符、中横线、和`.`的标签名
+// 匹配标签名，<my-component data-index=...中的my-component
+// 标签名：以字母、下划线开头，后跟任意多个的字符、中横线、和`.`
 const ncname = '[a-zA-Z_][\\w\\-\\.]*'
 const qnameCapture = `((?:${ncname}\\:)?${ncname})`
 const startTagOpen = new RegExp(`^<${qnameCapture}`)
-// 标签可能是一元标签，如<br />
+// 匹配开始标签的结束部分。标签可能是一元标签，如<br />
 const startTagClose = /^\s*(\/?)>/
 const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`)
 // 匹配 <!DOCTYPE HTML>
@@ -159,6 +160,7 @@ export function parseHTML (html, options) {
 
         // Start tag:
         const startTagMatch = parseStartTag()
+        // 匹配到了开始标签
         if (startTagMatch) {
           handleStartTag(startTagMatch)
           if (shouldIgnoreFirstNewline(startTagMatch.tagName, html)) {
@@ -239,23 +241,30 @@ export function parseHTML (html, options) {
   }
 
   function parseStartTag () {
+    // 假设标签为<my-component data-index="1"></my-component>
     const start = html.match(startTagOpen)
     if (start) {
       const match = {
-        tagName: start[1],
-        attrs: [],
-        start: index
+        tagName: start[1],  // 标签名
+        attrs: [],  // 属性数组，数组元素为正则match的所有匹配结果
+        start: index  // 标签开始序号
       }
+      // 跳过开始标签的标签名
       advance(start[0].length)
       let end, attr
+      // 循环解析属性，直到开始标签的结束。如果标签没有闭合，也会因为匹配不到属性而退出while循环
       while (!(end = html.match(startTagClose)) && (attr = html.match(attribute))) {
+        // 将index移动到当前属性之后
         advance(attr[0].length)
         match.attrs.push(attr)
       }
       if (end) {
+        // 如果是一元标签，则unarySlash为斜杆/
         match.unarySlash = end[1]
+        // 将index移动到闭合之后
         advance(end[0].length)
         match.end = index
+        // 只有完整的解析了一个标签字符串，才会返回该标签字符串的对象形式
         return match
       }
     }
