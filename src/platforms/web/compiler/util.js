@@ -12,13 +12,14 @@ export const isUnaryTag = makeMap(
 
 // Elements that you can, intentionally, leave open
 // (and which close themselves)
+// TODO 查下self-closing的来源（官方文档）？
 export const canBeLeftOpenTag = makeMap(
   'colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr,source'
 )
 
 // HTML5 tags https://html.spec.whatwg.org/multipage/indices.html#elements-3
 // Phrasing Content https://html.spec.whatwg.org/multipage/dom.html#phrasing-content
-// TODO
+// TODO 验证下面缺少、应排除的标签是否正确，以及html5的标签嵌套规则
 // 缺少：main,menu,nav,ol,p,pre,section,table,ul ?
 // 应排除：menuitem,meta ?
 export const isNonPhrasingTag = makeMap(

@@ -53,7 +53,7 @@ export const isPlainTextElement = makeMap('script,style,textarea', true)
 const reCache = {}
 
 /**
- chrome下，当获取的innerHTML中含有<a>标签，且其href属性中含有制表符，则制表符会转为"&#9;"；如果含有换行符，会转为"&#10;"
+ chrome下，当获取的innerHTML中含有<a>标签，且<a>标签的href属性中含有制表符，则此制表符会转为"&#9;"；如果含有换行符，会转为"&#10;"
  <div id="link-box">
      <a href="https://www.baidu.com	">aaaa</a>
      <a href="https://www.baidu.com
@@ -92,12 +92,18 @@ function decodeAttr (value, shouldDecodeNewlines) {
  * @param options Object
  */
 export function parseHTML (html, options) {
+  // 开始标签的数组列表，存储解析html字符串时遇到的开始标签
   const stack = []
   const expectHTML = options.expectHTML
+  // 判断是否是一元标签的函数
   const isUnaryTag = options.isUnaryTag || no
+  // 判断是否是自闭合标签的函数
   const canBeLeftOpenTag = options.canBeLeftOpenTag || no
   let index = 0
-  let last, lastTag
+  // 解析前的html字符串
+  let last,
+    // 最近解析过的双标签
+    lastTag
   while (html) {
     last = html
     // Make sure we're not in a plaintext content element like script/style
@@ -240,6 +246,9 @@ export function parseHTML (html, options) {
     html = html.substring(n)
   }
 
+  // 解析开始标签
+  // 只有完整的解析了一个标签字符串，才会返回该标签字符串的对象形式
+  // 否则没有返回值
   function parseStartTag () {
     // 假设标签为<my-component data-index="1"></my-component>
     const start = html.match(startTagOpen)
@@ -259,37 +268,47 @@ export function parseHTML (html, options) {
         match.attrs.push(attr)
       }
       if (end) {
-        // 如果是一元标签，则unarySlash为斜杆/
+        // 如果开始标签含有斜杠，则unarySlash为斜杠"/"；如果没有，则为undefined
         match.unarySlash = end[1]
         // 将index移动到闭合之后
         advance(end[0].length)
         match.end = index
-        // 只有完整的解析了一个标签字符串，才会返回该标签字符串的对象形式
         return match
       }
     }
   }
 
+  // 处理开始标签
   function handleStartTag (match) {
     const tagName = match.tagName
+    // 如果是一元标签，则为斜杠/
     const unarySlash = match.unarySlash
 
     if (expectHTML) {
+      // 由于p标签只能包含短语标签
+      // 父级是p标签 && 标签本身不是短语类型，这违反了html中的嵌套规则，需要闭合父级标签
+      // <p><div>123</div></p> => <p></p><div>123</div></p>
       if (lastTag === 'p' && isNonPhrasingTag(tagName)) {
         parseEndTag(lastTag)
       }
+      // <ul><li>1<li>2</ul>
       if (canBeLeftOpenTag(tagName) && lastTag === tagName) {
         parseEndTag(tagName)
       }
     }
 
+    // 用指定方法判断开始标签是否是一元标签 || 开始标签是否含有斜杠"/"
     const unary = isUnaryTag(tagName) || !!unarySlash
 
     const l = match.attrs.length
+    // TODO 验证下：不用map函数，而用new Array是为了避免IE下svg的bug？
     const attrs = new Array(l)
     for (let i = 0; i < l; i++) {
       const args = match.attrs[i]
+      // 属性的值
       const value = args[3] || args[4] || args[5] || ''
+      // 指定是否要解码，如解码制表符：&#9; => \t
+      // TODO 这样处理有什么用，或者说为的是什么?
       const shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
         ? options.shouldDecodeNewlinesForHref
         : options.shouldDecodeNewlines
@@ -299,11 +318,14 @@ export function parseHTML (html, options) {
       }
     }
 
+    // 如果不是单标签，则记录
     if (!unary) {
       stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs })
+      // 将标签指定为已解析的最后一个标签
       lastTag = tagName
     }
 
+    // 执行提供的钩子函数
     if (options.start) {
       options.start(tagName, attrs, unary, match.start, match.end)
     }
@@ -316,8 +338,10 @@ export function parseHTML (html, options) {
 
     // Find the closest opened tag of the same type
     if (tagName) {
+      // 查找该结束标签对应的最近的开始标签
       lowerCasedTagName = tagName.toLowerCase()
       for (pos = stack.length - 1; pos >= 0; pos--) {
+        // html虽然不区分大小写，但是js字符串区分大小写，所以用小写字母比较
         if (stack[pos].lowerCasedTag === lowerCasedTagName) {
           break
         }
