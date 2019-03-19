@@ -36,7 +36,7 @@ const doctype = /^<!DOCTYPE [^>]+>/i
 // TODO https://github.com/vuejs/vue/issues/7298
 // TODO vue代码内联到html中长什么样？
 const comment = /^<!\--/
-// TODO 条件注释节点，如<!--[if IE 8]>...<![endif]-->
+// TODO 条件注释标签，如<!--[if IE 8]>...<![endif]-->
 // https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/compatibility/ms537512(v=vs.85)
 // https://zh.wikipedia.org/wiki/%E6%9D%A1%E4%BB%B6%E6%B3%A8%E9%87%8A
 // https://css-tricks.com/downlevel-hidden-downlevel-revealed/
@@ -110,14 +110,15 @@ export function parseHTML (html, options) {
     // 确保即将解析的内容不是纯文本
     if (!lastTag || !isPlainTextElement(lastTag)) {
       let textEnd = html.indexOf('<')
-      // html以"<"开头
+      // 循环处理html以"<"开头的情况
       if (textEnd === 0) {
         // Comment:
         // 如果html以<!--开头
         if (comment.test(html)) {
           const commentEnd = html.indexOf('-->')
 
-          // 如果存在注释结尾节点。由于commentEnd肯定比0大（当前的html以"<!--"开头）。这里的>=0是表示有找到commentEnd
+          // 如果存在注释结尾标签，才会认为这是一个注释，并且剔除掉
+          // 由于commentEnd肯定比0大（当前的html以"<!--"开头）。这里的>=0是表示有找到commentEnd
           if (commentEnd >= 0) {
             // 如果用户指定html中需要保留注释
             if (options.shouldKeepComment) {
@@ -127,27 +128,27 @@ export function parseHTML (html, options) {
             // 从html中剔除掉当前的注释字符串
             advance(commentEnd + 3)
             continue
-          }
+          } // 匹配不上注释标签，走接下来的流程
         }
 
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
         // 如果html以<![开头
         // Q vue把Downlevel-revealed条件注释去掉的原因？
         // A Downlevel-revealed在vue中的范围为IE9、非IE浏览器，因此等于全显示，可以去掉
-        // TODO <![ 是错误语法，浏览器会将其解析为注释节点
+        // TODO <![ 是错误语法，浏览器会将其解析为注释标签
         // https://stackoverflow.com/questions/25067709/html-comment-behavior/25068759#25068759
         if (conditionalComment.test(html)) {
           const conditionalEnd = html.indexOf(']>')
 
-          // 如果找到downlevel-revealed注释节点，则跳过
+          // 如果找到downlevel-revealed注释标签，则跳过
           if (conditionalEnd >= 0) {
             advance(conditionalEnd + 2)
             continue
-          }
+          } // 匹配不上downlevel-revealed标签，走接下来的流程
         }
 
         // Doctype:
-        // 跳过html字符串中的整个doctype节点
+        // 跳过html字符串中的整个doctype标签
         const doctypeMatch = html.match(doctype)
         if (doctypeMatch) {
           advance(doctypeMatch[0].length)
@@ -155,7 +156,7 @@ export function parseHTML (html, options) {
         }
 
         // End tag:
-        // 跳过html字符串中的标签结束节点
+        // 跳过html字符串中的标签结束标签
         const endTagMatch = html.match(endTag)
         if (endTagMatch) {
           const curIndex = index
@@ -169,6 +170,7 @@ export function parseHTML (html, options) {
         // 匹配到了开始标签
         if (startTagMatch) {
           handleStartTag(startTagMatch)
+          // 处理pre、textarea标签第一行换行的情况
           if (shouldIgnoreFirstNewline(startTagMatch.tagName, html)) {
             advance(1)
           }
@@ -177,16 +179,30 @@ export function parseHTML (html, options) {
       }
 
       let text, rest, next
+      /*
+        1、先进入textEnd === 0循环，后因不满足continue而进入此处if判断
+          1) 没有匹配到结尾标签的注释标签，如：<!--123...
+          2) 没有匹配到结尾标签的条件注释标签，如：<![123...
+          3) 标签均不属于注释、条件注释、doctype、结束、开始标签，如：<123
+        2、直接进入此处if判断：test<123><div>
+       */
       if (textEnd >= 0) {
+        // 将html截取到以"<"开头：<123><div>
         rest = html.slice(textEnd)
+
         while (
+          // 由于<!DOCTYPE>声明必须处于html文档的第一行，如果存在<!DOCTYPE>标签，那么在之前的if中已经被匹配了
+          // 此处即使存在<!DOCTYPE>，也是字符串形式
+          // 因此while中不需要再判断是否是doctype
           !endTag.test(rest) &&
           !startTagOpen.test(rest) &&
           !comment.test(rest) &&
           !conditionalComment.test(rest)
         ) {
           // < in plain text, be forgiving and treat it as text
+          // 跳过<123><div>开头的'<'，查找新的标签
           next = rest.indexOf('<', 1)
+          // 如果接下来都没有标签了，则跳出while循环
           if (next < 0) break
           textEnd += next
           rest = html.slice(textEnd)
@@ -195,11 +211,13 @@ export function parseHTML (html, options) {
         advance(textEnd)
       }
 
+      // 没找到标签符号，则表示html字符串中包含的都是字符，可以退出while循环了
       if (textEnd < 0) {
         text = html
         html = ''
       }
 
+      // 存储字符
       if (options.chars && text) {
         options.chars(text)
       }
@@ -337,11 +355,11 @@ export function parseHTML (html, options) {
     if (end == null) end = index
 
     // Find the closest opened tag of the same type
+    // 查找该结束标签在stack数组中对应的最近的开始标签
     if (tagName) {
-      // 查找该结束标签对应的最近的开始标签
       lowerCasedTagName = tagName.toLowerCase()
       for (pos = stack.length - 1; pos >= 0; pos--) {
-        // html虽然不区分大小写，但是js字符串区分大小写，所以用小写字母比较
+        // html虽然不区分大小写，但是js字符串区分大小写，所以用小写字母比较是否相等
         if (stack[pos].lowerCasedTag === lowerCasedTagName) {
           break
         }
@@ -353,7 +371,11 @@ export function parseHTML (html, options) {
 
     if (pos >= 0) {
       // Close all the open elements, up the stack
+      // 将当前标签及其子标签一一关闭
       for (let i = stack.length - 1; i >= pos; i--) {
+        // 假设标签为<ul><li>1<li>2</ul>
+        // 当匹配到结束标签</ul>时，此时stack为[{tagName: 'ul'}, {tagName: 'li'}]
+        // stack数组中多了一个未闭合的标签li，会进入此逻辑进行提示
         if (process.env.NODE_ENV !== 'production' &&
           (i > pos || !tagName) &&
           options.warn
@@ -362,19 +384,24 @@ export function parseHTML (html, options) {
             `tag <${stack[i].tag}> has no matching end tag.`
           )
         }
+        // 执行回调钩子
         if (options.end) {
           options.end(stack[i].tag, start, end)
         }
       }
 
       // Remove the open elements from the stack
+      // 移除stack中的该开始标签
       stack.length = pos
       lastTag = pos && stack[pos - 1].tag
     } else if (lowerCasedTagName === 'br') {
+      // 如果html中仅写了</br>，那么浏览器会将其渲染为<br>，这里vue保持一致
+      // TODO 了解下只存在结束标签时，浏览器的渲染结果
       if (options.start) {
         options.start(tagName, [], true, start, end)
       }
     } else if (lowerCasedTagName === 'p') {
+      // 如果html中仅写了</p>，那么浏览器会将其渲染为<p></p>，这里vue保持一致
       if (options.start) {
         options.start(tagName, [], false, start, end)
       }
