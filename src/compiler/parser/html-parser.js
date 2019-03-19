@@ -211,7 +211,7 @@ export function parseHTML (html, options) {
         advance(textEnd)
       }
 
-      // 没找到标签符号，则表示html字符串中包含的都是字符，可以退出while循环了
+      // 没找到标签符号，则表示html字符串中包含的都是字符，可以退出while循环
       if (textEnd < 0) {
         text = html
         html = ''
