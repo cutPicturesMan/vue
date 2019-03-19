@@ -11,6 +11,7 @@
 // TODO Resig写htmlParser的原因：https://johnresig.com/blog/pure-javascript-html-parser/；https://johnresig.com/files/htmlparser.js
 import { makeMap, no } from 'shared/util'
 import { isNonPhrasingTag } from 'web/compiler/util'
+import { unicodeRegExp } from 'core/util/lang'
 
 // Regular Expressions for parsing tags and attributes
 // html 标签属性值的4种声明方式：
@@ -19,12 +20,13 @@ import { isNonPhrasingTag } from 'web/compiler/util'
 // 3、单引号：class='some-class'。'([^']*)'+
 // 4、不使用引号：class=some-class。([^\s"'=<>`]+)
 const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
+const dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
 // could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
 // but for Vue templates we can enforce a simple charset
 // TODO 了解下xml标签规范
 // 匹配标签名，<my-component data-index=...中的my-component
 // 标签名：以字母、下划线开头，后跟任意多个的字符、中横线、和`.`
-const ncname = '[a-zA-Z_][\\w\\-\\.]*'
+const ncname = `[a-zA-Z_][\\-\\.0-9_a-zA-Z${unicodeRegExp.source}]*`
 const qnameCapture = `((?:${ncname}\\:)?${ncname})`
 const startTagOpen = new RegExp(`^<${qnameCapture}`)
 // 匹配开始标签的结束部分。标签可能是一元标签，如<br />
@@ -69,10 +71,11 @@ const decodingMap = {
   '&quot;': '"',
   '&amp;': '&',
   '&#10;': '\n',  // 换行符
-  '&#9;': '\t'  // 制表符
+  '&#9;': '\t',  // 制表符
+  '&#39;': "'"
 }
-const encodedAttr = /&(?:lt|gt|quot|amp);/g
-const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#10|#9);/g
+const encodedAttr = /&(?:lt|gt|quot|amp|#39);/g
+const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#39|#10|#9);/g
 
 // #5992 https://github.com/vuejs/vue/issues/5992
 // 紧跟在<pre>开始标签后的换行符会被省略，vue原本不会省略，这里处理下
@@ -122,8 +125,9 @@ export function parseHTML (html, options) {
           if (commentEnd >= 0) {
             // 如果用户指定html中需要保留注释
             if (options.shouldKeepComment) {
-              // 取到注释中的文字内容，传给options.comment函数。4表示注释开头为<!--的字符长度为4
               options.comment(html.substring(4, commentEnd))
+              // 取到注释中的文字内容，传给options.comment函数。4表示注释开头为<!--的字符长度为4
+              options.comment(html.substring(4, commentEnd), index, index + commentEnd + 3)
             }
             // 从html中剔除掉当前的注释字符串
             advance(commentEnd + 3)
@@ -208,18 +212,20 @@ export function parseHTML (html, options) {
           rest = html.slice(textEnd)
         }
         text = html.substring(0, textEnd)
-        advance(textEnd)
       }
 
       // 没找到标签符号，则表示html字符串中包含的都是字符，可以退出while循环
       if (textEnd < 0) {
         text = html
-        html = ''
+      }
+
+      if (text) {
+        advance(text.length)
       }
 
       // 存储字符
       if (options.chars && text) {
-        options.chars(text)
+        options.chars(text, index - text.length, index)
       }
     } else {
       // 解析纯文本
@@ -249,7 +255,7 @@ export function parseHTML (html, options) {
     if (html === last) {
       options.chars && options.chars(html)
       if (process.env.NODE_ENV !== 'production' && !stack.length && options.warn) {
-        options.warn(`Mal-formatted tag at end of template: "${html}"`)
+        options.warn(`Mal-formatted tag at end of template: "${html}"`, { start: index + html.length })
       }
       break
     }
@@ -280,9 +286,11 @@ export function parseHTML (html, options) {
       advance(start[0].length)
       let end, attr
       // 循环解析属性，直到开始标签的结束。如果标签没有闭合，也会因为匹配不到属性而退出while循环
-      while (!(end = html.match(startTagClose)) && (attr = html.match(attribute))) {
+      while (!(end = html.match(startTagClose)) && (attr = html.match(dynamicArgAttribute) || html.match(attribute))) {
         // 将index移动到当前属性之后
+        attr.start = index
         advance(attr[0].length)
+        attr.end = index
         match.attrs.push(attr)
       }
       if (end) {
@@ -334,12 +342,16 @@ export function parseHTML (html, options) {
         name: args[1],
         value: decodeAttr(value, shouldDecodeNewlines)
       }
+      if (process.env.NODE_ENV !== 'production' && options.outputSourceRange) {
+        attrs[i].start = args.start + args[0].match(/^\s*/).length
+        attrs[i].end = args.end
+      }
     }
 
     // 如果不是单标签，则记录
     if (!unary) {
-      stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs })
       // 将标签指定为已解析的最后一个标签
+      stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end })
       lastTag = tagName
     }
 
@@ -381,7 +393,8 @@ export function parseHTML (html, options) {
           options.warn
         ) {
           options.warn(
-            `tag <${stack[i].tag}> has no matching end tag.`
+            `tag <${stack[i].tag}> has no matching end tag.`,
+            { start: stack[i].start, end: stack[i].end }
           )
         }
         // 执行回调钩子

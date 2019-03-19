@@ -8,6 +8,7 @@ import { initAssetRegisters } from './assets'
 import { set, del } from '../observer/index'
 import { ASSET_TYPES } from 'shared/constants'
 import builtInComponents from '../components/index'
+import { observe } from 'core/observer/index'
 
 import {
   warn,
@@ -61,6 +62,13 @@ export function initGlobalAPI (Vue: GlobalAPI) {
       _base: Vue
    }
    */
+
+  // 2.6 explicit observable API
+  Vue.observable = <T>(obj: T): T => {
+    observe(obj)
+    return obj
+  }
+
   Vue.options = Object.create(null)
   ASSET_TYPES.forEach(type => {
     Vue.options[type + 's'] = Object.create(null)

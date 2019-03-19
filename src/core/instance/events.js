@@ -4,8 +4,8 @@ import {
   tip,
   toArray,
   hyphenate,
-  handleError,
-  formatComponentName
+  formatComponentName,
+  invokeWithErrorHandling
 } from '../util/index'
 import { updateListeners } from '../vdom/helpers/index'
 
@@ -152,12 +152,9 @@ export function eventsMixin (Vue: Class<Component>) {
       cbs = cbs.length > 1 ? toArray(cbs) : cbs
       // TODO 这里用toArray和Array.prototype.slice.call(arguments, 1)的区别？
       const args = toArray(arguments, 1)
+      const info = `event handler for "${event}"`
       for (let i = 0, l = cbs.length; i < l; i++) {
-        try {
-          cbs[i].apply(vm, args)
-        } catch (e) {
-          handleError(e, vm, `event handler for "${event}"`)
-        }
+        invokeWithErrorHandling(cbs[i], vm, args, vm, info)
       }
     }
     return vm

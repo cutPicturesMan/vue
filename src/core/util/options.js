@@ -2,8 +2,9 @@
 
 import config from '../config'
 import { warn } from './debug'
-import { nativeWatch } from './env'
 import { set } from '../observer/index'
+import { unicodeRegExp } from './lang'
+import { nativeWatch, hasSymbol } from './env'
 
 import {
   ASSET_TYPES,
@@ -54,9 +55,15 @@ if (process.env.NODE_ENV !== 'production') {
 function mergeData (to: Object, from: ?Object): Object {
   if (!from) return to
   let key, toVal, fromVal
-  const keys = Object.keys(from)
+
+  const keys = hasSymbol
+    ? Reflect.ownKeys(from)
+    : Object.keys(from)
+
   for (let i = 0; i < keys.length; i++) {
     key = keys[i]
+    // in case the object is already observed...
+    if (key === '__ob__') continue
     toVal = to[key]
     fromVal = from[key]
     // 如果目标对象上没有对应key，则将该key合并到目标对象上
@@ -163,7 +170,7 @@ function mergeHook (
   parentVal: ?Array<Function>,
   childVal: ?Function | ?Array<Function>
 ): ?Array<Function> {
-  return childVal
+  const res = childVal
     // 子hook存在，则判断父hook是否存在
     ? parentVal
       // 父hook存在，则与子hook合并成一个数组（父hook永远是数组）
@@ -174,6 +181,19 @@ function mergeHook (
         : [childVal]
     // 子hook不存在，直接返回父hook
     : parentVal
+  return res
+    ? dedupeHooks(res)
+    : res
+}
+
+function dedupeHooks (hooks) {
+  const res = []
+  for (let i = 0; i < hooks.length; i++) {
+    if (res.indexOf(hooks[i]) === -1) {
+      res.push(hooks[i])
+    }
+  }
+  return res
 }
 
 LIFECYCLE_HOOKS.forEach(hook => {
@@ -300,11 +320,10 @@ function checkComponents (options: Object) {
 
 export function validateComponentName (name: string) {
   // 组件名称只能包含字母数字下划线、连字符，并且要以字母开头
-  if (!/^[a-zA-Z][\w-]*$/.test(name)) {
+  if (!new RegExp(`^[a-zA-Z][\\-\\.0-9_${unicodeRegExp.source}]*$`).test(name)) {
     warn(
       'Invalid component name: "' + name + '". Component names ' +
-      'can only contain alphanumeric characters and the hyphen, ' +
-      'and must start with a letter.'
+      'should conform to valid custom element name in html5 specification.'
     )
   }
   // 内置组件 || html保留标签
