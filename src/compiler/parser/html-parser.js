@@ -52,6 +52,7 @@ const conditionalComment = /^<!\[/
 
 // Special Elements (can contain anything)
 export const isPlainTextElement = makeMap('script,style,textarea', true)
+// key: 纯文本标签；val: 正则
 const reCache = {}
 
 /**
@@ -208,6 +209,7 @@ export function parseHTML (html, options) {
           next = rest.indexOf('<', 1)
           // 如果接下来都没有标签了，则跳出while循环
           if (next < 0) break
+          // 光标定位到新标签的'<'上
           textEnd += next
           rest = html.slice(textEnd)
         }
@@ -219,6 +221,7 @@ export function parseHTML (html, options) {
         text = html
       }
 
+      // TODO 为何从while中移出
       if (text) {
         advance(text.length)
       }
@@ -228,9 +231,11 @@ export function parseHTML (html, options) {
         options.chars(text, index - text.length, index)
       }
     } else {
-      // 解析纯文本
+      // 上一个解析的标签有值 && 上一个解析的标签属于纯文本标签
       let endTagLength = 0
       const stackedTag = lastTag.toLowerCase()
+      // 匹配纯文本标签的内容以及结束标签
+      // 这里要注意下，由于正则表达式总是会寻找字符串中第一个可能匹配的位置，而不会考虑匹配更短的情况，([\\s\\S]*?)会匹配纯文本标签的全部内容而不是只有内容的最后一个字符
       const reStackedTag = reCache[stackedTag] || (reCache[stackedTag] = new RegExp('([\\s\\S]*?)(</' + stackedTag + '[^>]*>)', 'i'))
       const rest = html.replace(reStackedTag, function (all, text, endTag) {
         endTagLength = endTag.length
