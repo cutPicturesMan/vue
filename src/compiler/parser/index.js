@@ -21,32 +21,64 @@ import {
   getAndRemoveAttrByRegex
 } from '../helpers'
 
+// 检测标签属性名是否是监听事件的指令
 export const onRE = /^@|^v-on:/
+// 检测标签属性名是否是指令
+// @为v-on的缩写
+// :为v-bind的缩写
+// TODO .修饰符并非用在开头，为何要放到这里？
 export const dirRE = process.env.VBIND_PROP_SHORTHAND
   ? /^v-|^@|^:|^\./
   : /^v-|^@|^:/
+// 匹配v-for="item of list"，并提取字符串item、list
+// v-for是可以分成多行写的，[^]、[\s\S]都表示匹配任何字符（包括换行符），但是[^]IE不支持，会匹配到空值，因此使用[\s\S]
+// http://sjhannah.com/blog/2011/05/17/javascript-matching-all-characters-including-new-line/
 export const forAliasRE = /([\s\S]*?)\s+(?:in|of)\s+([\s\S]*)/
+// support array and nested destructuring in v-for
+/**
+ * 匹配v-for的第二个和第三个参数
+ * v-for有三种语法：
+ 1、第一个参数item支持对象解构赋值、数组解构赋值、数组嵌套解构赋值
+  1.1、v-for="item of list"
+  1.2、v-for="{name, age} of list", list=[{name: 'z', age: 26}, {name: 'x', age: 27}, ]
+  1.3、v-for="[{name}, age] of list", list=[[{name: 'z'}, 26], [{name: 'x'}, 27]]
+ 2、循环数组时，第二个参数为序号；循环对象时，第二个参数为key值，第三个参数为序号
+   2.1、v-for="(item, index) of list"
+   2.2、v-for="(item, key, index) of obj"
+ */
 export const forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/
+// 匹配以"("开头、或者以")"结尾、或者兼具两者的字符串
 const stripParensRE = /^\(|\)$/g
+// 匹配动态参数，<a v-on:[eventName]="doSomething"> ... </a>
+// https://cn.vuejs.org/v2/guide/syntax.html#动态参数
 const dynamicArgRE = /^\[.*\]$/
 
+// 匹配指令的参数列表，<div v-on:click.stop="handleClick"></div>
 const argRE = /:(.*)$/
+// 匹配v-bind指令
 export const bindRE = /^:|^\.|^v-bind:/
 const propBindRE = /^\./
+// 匹配修饰符
+// TODO https://github.com/vuejs/vue/issues/9577
 const modifierRE = /\.[^.\]]+(?=[^\]]*$)/g
 
+// https://cn.vuejs.org/v2/guide/components-slots.html
 const slotRE = /^v-slot(:|$)|^#/
 
 const lineBreakRE = /[\r\n]/
 const whitespaceRE = /\s+/g
 
+// 匹配非法的动态参数表达式
 const invalidAttributeRE = /[\s"'<>\/=]/
 
+// 解码HTML字符实体，并缓存结果
+// &#x26; -> '&'
 const decodeHTMLCached = cached(he.decode)
 
 export const emptySlotScopeToken = `_empty_`
 
 // configurable state
+// 初始化编译器选项参数
 export let warn: any
 let delimiters
 let transforms
@@ -75,9 +107,35 @@ export function createASTElement (
 
 /**
  * Convert HTML string to AST.
- */
+ * 将html字符串转为ast树
+
+  html字符串：
+    <ul>
+      <li>
+        <span>文本</span>
+      </li>
+    </ul>
+
+  ast树：
+    {
+      type: 1,
+      tag: 'ul',
+      parent: null,
+      attrsList: [],
+      children: [{
+        type: 1,
+        tag: 'li',
+        parent: ul,
+        attrsList: [],
+        children: [
+          ...
+        ]
+      }]
+    }
+*/
 export function parse (
   template: string,
+  // options参数来自于src/platforms/web/compiler/options.js
   options: CompilerOptions
 ): ASTElement | void {
   warn = options.warn || baseWarn
@@ -88,6 +146,23 @@ export function parse (
   const isReservedTag = options.isReservedTag || no
   maybeComponent = (el: ASTElement) => !!el.component || !isReservedTag(el.tag)
 
+  /**
+   options.modules选项来自于src/platforms/web/compiler/modules/index.js
+
+   options.modules = [{
+     staticKeys: ['staticClass'],
+     transformNode,
+     genData
+   }, {
+     staticKeys: ['staticStyle'],
+     transformNode,
+     genData
+   }, {
+     preTransformNode
+   }]
+
+   transforms = [transformNode, transformNode]
+   */
   transforms = pluckModuleFunction(options.modules, 'transformNode')
   preTransforms = pluckModuleFunction(options.modules, 'preTransformNode')
   postTransforms = pluckModuleFunction(options.modules, 'postTransformNode')
@@ -95,6 +170,7 @@ export function parse (
   delimiters = options.delimiters
 
   const stack = []
+  // 编译html字符串时是否放弃标签之间的空格
   const preserveWhitespace = options.preserveWhitespace !== false
   const whitespaceOption = options.whitespace
   let root
@@ -110,14 +186,18 @@ export function parse (
     }
   }
 
+  // 每当遇到一个标签的结束标签时，或遇到一元标签时都会调用该方法“闭合”标签
   function closeElement (element) {
     trimEndingWhitespace(element)
     if (!inVPre && !element.processed) {
       element = processElement(element, options)
     }
     // tree management
+    // 当stack.length为0时，即一个根节点及其子元素全部处理完毕
+    // 这时如果有同级的根节点，就会进入此流程
     if (!stack.length && element !== root) {
       // allow root elements with v-if, v-else-if and v-else
+      // v-if条件显示某个根节点
       if (root.if && (element.elseif || element.else)) {
         if (process.env.NODE_ENV !== 'production') {
           checkRootConstraints(element)
@@ -137,15 +217,18 @@ export function parse (
     }
     if (currentParent && !element.forbidden) {
       if (element.elseif || element.else) {
+        // 如果根元素由v-if、v-else-if、v-else组成，则将v-else-if、v-else元素添加到v-if元素的ifConditions数组中
         processIfConditions(element, currentParent)
       } else {
         if (element.slotScope) {
           // scoped slot
           // keep it in the children list so that v-else(-if) conditions can
           // find it as the prev node.
+          // 使用了slot-scope特性的元素将被添加到父级描述对象的scopedSlots对象下，不会作为父级元素的子节点
           const name = element.slotTarget || '"default"'
           ;(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element
         }
+        // 建立元素描述对象的父子关系
         currentParent.children.push(element)
         element.parent = currentParent
       }
@@ -184,6 +267,10 @@ export function parse (
     }
   }
 
+  // 检测模板根元素是否符合要求（有且只有一个根元素）
+  // slot插槽的内容是由外界决定的，有可能渲染多个节点
+  // template作为抽象组件，不会渲染任何内容到页面，但是可能包含多个子节点
+  // v-for指令会渲染多个节点
   function checkRootConstraints (el) {
     if (el.tag === 'slot' || el.tag === 'template') {
       warnOnce(
@@ -210,13 +297,32 @@ export function parse (
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
     outputSourceRange: options.outputSourceRange,
+    // 每次遇到开始标签时调用
     start (tag, attrs, unary, start, end) {
       // check namespace.
       // inherit parent ns if there is one
+      // platformGetTagNamespace 函数只会获取 svg 和 math 这两个标签的命名空间
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
 
       // handle IE svg bug
       /* istanbul ignore if */
+      // http://osgeo-org.1560.x6.nabble.com/WFS-and-IE-11-td5090636.html
+      /**
+       <svg xmlns:feature="http://www.openplans.org/topp"></svg>
+       svg标签在IE下被渲染成
+       <svg xmlns:NS1="" NS1:xmlns:feature="http://www.openplans.org/topp"></svg>
+       需要移除'xmlns:NS1="" NS1:' 这段字符串
+       attrs = [
+       {
+         name: 'xmlns:NS1',
+         value: ''
+       },
+       {
+         name: 'NS1:xmlns:feature',
+         value: 'http://www.openplans.org/topp'
+       }
+       ]
+       */
       if (isIE && ns === 'svg') {
         attrs = guardIESVGBug(attrs)
       }
@@ -249,6 +355,7 @@ export function parse (
         })
       }
 
+      // 模板只负责数据状态到UI的映射，不应该存在引起副作用的代码
       if (isForbiddenTag(element) && !isServerRendering()) {
         element.forbidden = true
         process.env.NODE_ENV !== 'production' && warn(
@@ -264,12 +371,17 @@ export function parse (
         element = preTransforms[i](element, options) || element
       }
 
+      // 如果当前元素没有被<pre>标签包裹，则进入此流程
       if (!inVPre) {
+        // 如果当前标签使用了v-pre指令，则element.pre = true
         processPre(element)
         if (element.pre) {
           inVPre = true
         }
       }
+      // 判断当前元素是否是<pre>标签
+      // 1、<pre> 标签会对其所包含的 html 字符实体进行解码
+      // 2、<pre> 标签会保留 html 字符串编写时的空白
       if (platformIsPreTag(element.tag)) {
         inPre = true
       }
@@ -283,6 +395,7 @@ export function parse (
       }
 
       if (!root) {
+        // root不存在，说明当前元素就是根元素
         root = element
         if (process.env.NODE_ENV !== 'production') {
           checkRootConstraints(root)
@@ -296,7 +409,7 @@ export function parse (
         closeElement(element)
       }
     },
-
+    // 每次遇到结束标签时调用
     end (tag, start, end) {
       const element = stack[stack.length - 1]
       // pop stack
@@ -307,7 +420,7 @@ export function parse (
       }
       closeElement(element)
     },
-
+    // 遇到纯文本时调用
     chars (text: string, start: number, end: number) {
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
@@ -379,6 +492,7 @@ export function parse (
         }
       }
     },
+    // 遇到注释节点调用
     comment (text: string, start, end) {
       // adding anyting as a sibling to the root node is forbidden
       // comments should still be allowed, but ignored
@@ -405,6 +519,7 @@ function processPre (el) {
   }
 }
 
+// 将el.attrsList数组的值，同步一份到el.attr上
 function processRawAttrs (el) {
   const list = el.attrsList
   const len = list.length
@@ -413,6 +528,7 @@ function processRawAttrs (el) {
     for (let i = 0; i < len; i++) {
       attrs[i] = {
         name: list[i].name,
+        // TODO 为什么要加stringify
         value: JSON.stringify(list[i].value)
       }
       if (list[i].start != null) {
@@ -422,6 +538,12 @@ function processRawAttrs (el) {
     }
   } else if (!el.pre) {
     // non root node in pre blocks with no attributes
+    /**
+       解析span（v-pre指令的标签的子标签）时进入此处
+       <div v-pre>
+        <span></span>
+       </div>
+     */
     el.plain = true
   }
 }
@@ -486,6 +608,7 @@ function processRef (el) {
   }
 }
 
+// 处理v-for指令
 export function processFor (el: ASTElement) {
   let exp
   if ((exp = getAndRemoveAttr(el, 'v-for'))) {
@@ -508,12 +631,27 @@ type ForParseResult = {
   iterator2?: string;
 };
 
+/**
+ * <div v-for="item in list"></div>
+ * @param exp 表示v-for的值，如"item in list"
+ * @returns {} or undefined
+ * {
+ *  for: "list",
+ *  alias: "item"/"item, index"/"item, key, index",
+ *  iterator1: 没有此字段/"index"/"key",
+ *  iterator2: 没有此字段/没有此字段/"index"
+ * }
+ */
 export function parseFor (exp: string): ?ForParseResult {
+  // "item in list" => ["item in list", "item", "list"]
   const inMatch = exp.match(forAliasRE)
+  // 没有匹配到，inMatch返回null
   if (!inMatch) return
   const res = {}
   res.for = inMatch[2].trim()
+  // 将" (item, key, index)"处理为"item, key, index"
   const alias = inMatch[1].trim().replace(stripParensRE, '')
+  // "item, key, index" => [", key, index", " key", " index" ]
   const iteratorMatch = alias.match(forIteratorRE)
   if (iteratorMatch) {
     res.alias = alias.replace(forIteratorRE, '').trim()
@@ -536,6 +674,7 @@ function processIf (el) {
       block: el
     })
   } else {
+    // TODO v-else和v-else-if为什么不分开处理，意味着可以在同一个标签上同时出现v-else和v-else-if？
     if (getAndRemoveAttr(el, 'v-else') != null) {
       el.else = true
     }
@@ -548,12 +687,14 @@ function processIf (el) {
 
 function processIfConditions (el, parent) {
   const prev = findPrevElement(parent.children)
+  // 如果前一个同级元素使用了v-if，则将当前元素的描述对象，添加到前一个元素的ifConditions数组中
   if (prev && prev.if) {
     addIfCondition(prev, {
       exp: el.elseif,
       block: el
     })
   } else if (process.env.NODE_ENV !== 'production') {
+    // 如果前一个同级元素没有用v-if，则提示
     warn(
       `v-${el.elseif ? ('else-if="' + el.elseif + '"') : 'else'} ` +
       `used on element <${el.tag}> without corresponding v-if.`,
@@ -562,12 +703,24 @@ function processIfConditions (el, parent) {
   }
 }
 
+/**
+ <div>
+   <div v-if="a"></div>
+   aaaaa
+   <p v-else-if="b"></p>
+   bbbbb
+   <span v-else="c"></span>
+ </div>
+
+ TODO：验证下当解析到span标签时，children数组最后一个元素节点还是div
+ */
 function findPrevElement (children: Array<any>): ASTElement | void {
   let i = children.length
   while (i--) {
     if (children[i].type === 1) {
       return children[i]
     } else {
+      // 当前一个节点是文本节点时，将其排除
       if (process.env.NODE_ENV !== 'production' && children[i].text !== ' ') {
         warn(
           `text "${children[i].text.trim()}" between v-if and v-else(-if) ` +
@@ -912,6 +1065,22 @@ function parseModifiers (name: string): Object | void {
   }
 }
 
+/**
+ * 将标签的属性数组转换成"属性名-属性值"形式的对象
+ * @param attrs
+ [{
+   name: 'v-for',
+   value: 'obj of list'
+ }, {
+   name: 'class',
+   value: 'box'
+ }]
+ * @returns {}
+  {
+    'v-for': 'obj of list',
+    'class': 'box'
+  }
+ */
 function makeAttrsMap (attrs: Array<Object>): Object {
   const map = {}
   for (let i = 0, l = attrs.length; i < l; i++) {
@@ -931,6 +1100,11 @@ function isTextTag (el): boolean {
   return el.tag === 'script' || el.tag === 'style'
 }
 
+/**
+ * 禁用<style>标签、<script>标签、<script type="text/javascript">标签
+ * @param el
+ * @returns {boolean}
+ */
 function isForbiddenTag (el): boolean {
   return (
     el.tag === 'style' ||
