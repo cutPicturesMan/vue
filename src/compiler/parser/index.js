@@ -573,6 +573,7 @@ export function processElement (
   return element
 }
 
+// TODO
 function processKey (el) {
   const exp = getBindingAttr(el, 'key')
   if (exp) {

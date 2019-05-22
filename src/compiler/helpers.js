@@ -158,6 +158,8 @@ export function getRawBindingAttr (
     el.rawAttrsMap[name]
 }
 
+// 尝试获取el上v-bind的值
+// 如果没有获取到该动态绑定属性，则获取对应的静态属性
 export function getBindingAttr (
   el: ASTElement,
   name: string,
@@ -166,10 +168,18 @@ export function getBindingAttr (
   const dynamicValue =
     getAndRemoveAttr(el, ':' + name) ||
     getAndRemoveAttr(el, 'v-bind:' + name)
+  // 如果存在这个指令（无论有没有赋值），则进入此分支
+  // <div :list="arrList"></div>
+  // <div :list></div>
   if (dynamicValue != null) {
+    // 解析指令值包含的过滤器
     return parseFilters(dynamicValue)
   } else if (getStatic !== false) {
     const staticValue = getAndRemoveAttr(el, name)
+    // TODO 待验证
+    // 静态属性和动态属性公用一套处理方法
+    // 由于动态属性值会当作js的值处理，如果静态属性有值并直接返回，也会被当作js的值处理
+    // 因此这里要用JSON.stringify处理为字符串
     if (staticValue != null) {
       return JSON.stringify(staticValue)
     }
@@ -181,7 +191,8 @@ export function getBindingAttr (
 // By default it does NOT remove it from the map (attrsMap) because the map is
 // needed during codegen.
 /**
- 获取并移除元素描述对象上的某个属性值，避免该属性值被processAttrs函数处理
+ 获取并返回el.attrsMap上的某个指令的值，同时将其从el.attrsList中移除，避免该属性值被processAttrs函数处理
+
  el = {
   type: 1,
   tag: 'div',
@@ -195,6 +206,10 @@ export function getBindingAttr (
     'v-if': 'display'
   }
 }
+ * @param el
+ * @param name
+ * @param removeFromMap
+ * @returns {*}
  */
 export function getAndRemoveAttr (
   el: ASTElement,
