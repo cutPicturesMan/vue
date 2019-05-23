@@ -120,6 +120,7 @@ export function parseFilters (exp: string): string {
 
   function pushFilter () {
     (filters || (filters = [])).push(exp.slice(lastFilterIndex, i).trim())
+    // 针对多个过滤器的情况
     lastFilterIndex = i + 1
   }
 
@@ -132,14 +133,25 @@ export function parseFilters (exp: string): string {
   return expression
 }
 
+/**
+ 处理2种情况
+ 1、不带参数的filter
+ <div>{{ message | filterA }}</div>
+
+ 2、带参数、带空参数的filter
+ <div>{{ message | filterA('arg1', arg2) }}</div>
+ <div>{{ message | filterA() }}</div>
+ */
 function wrapFilter (exp: string, filter: string): string {
   const i = filter.indexOf('(')
   if (i < 0) {
     // _f: resolveFilter
     return `_f("${filter}")(${exp})`
   } else {
+
     const name = filter.slice(0, i)
     const args = filter.slice(i + 1)
+    // '_f("filter")(message, 'arg1', arg2)'
     return `_f("${name}")(${exp}${args !== ')' ? ',' + args : args}`
   }
 }
