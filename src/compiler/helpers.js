@@ -20,6 +20,7 @@ export function pluckModuleFunction<F: Function> (
     : []
 }
 
+// 将原生DOM对象的属性存储到el.props数组中
 export function addProp (el: ASTElement, name: string, value: string, range?: Range, dynamic?: boolean) {
   (el.props || (el.props = [])).push(rangeSetItem({ name, value, dynamic }, range))
   el.plain = false

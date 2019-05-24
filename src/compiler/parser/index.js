@@ -58,7 +58,7 @@ const argRE = /:(.*)$/
 // 匹配v-bind指令
 export const bindRE = /^:|^\.|^v-bind:/
 const propBindRE = /^\./
-// 匹配修饰符
+// 匹配修饰符（"."以及"."后面的字符）
 // TODO https://github.com/vuejs/vue/issues/9577
 const modifierRE = /\.[^.\]]+(?=[^\]]*$)/g
 
@@ -556,6 +556,8 @@ export function processElement (
 
   // determine whether this is a plain element after
   // removing structural attributes
+  // 结构化指令：v-for、v-if/v-else-if/v-else、v-once
+  // 只有当标签没有使用key属性、slot属性，并且标签只使用了结构化指令的情况下才被认为是“纯”的
   element.plain = (
     !element.key &&
     !element.scopedSlots &&
@@ -750,6 +752,7 @@ function processOnce (el) {
 
 // handle content being passed to a component as slot,
 // e.g. <template slot="xxx">, <div slot-scope="xxx">
+// TODO
 function processSlotContent (el) {
   let slotScope
   if (el.tag === 'template') {
@@ -885,9 +888,12 @@ function getSlotName (binding) {
 }
 
 // handle <slot/> outlets
+// 处理<slot>标签，如<slot name="header"></slot>
 function processSlotOutlet (el) {
   if (el.tag === 'slot') {
     el.slotName = getBindingAttr(el, 'name')
+    // key属性不能使用在<slot>、<template> 上
+    // <slot>和<template>都是抽象组件，抽象组件要么渲染真实DOM，要么会被不可预知的DOM元素替代
     if (process.env.NODE_ENV !== 'production' && el.key) {
       warn(
         `\`key\` does not work on <slot> because slots are abstract outlets ` +
@@ -909,12 +915,14 @@ function processComponent (el) {
   }
 }
 
+// 处理el.attrsList数组中剩余的所有属性的
 function processAttrs (el) {
   const list = el.attrsList
   let i, l, name, rawName, value, modifiers, syncGen, isDynamic
   for (i = 0, l = list.length; i < l; i++) {
     name = rawName = list[i].name
     value = list[i].value
+    // 如果属性是指令
     if (dirRE.test(name)) {
       // mark element as dynamic
       el.hasBindings = true
@@ -922,12 +930,15 @@ function processAttrs (el) {
       modifiers = parseModifiers(name.replace(dirRE, ''))
       // support .foo shorthand syntax for the .prop modifier
       if (process.env.VBIND_PROP_SHORTHAND && propBindRE.test(name)) {
+        // TODO prop为真说明该绑定的属性是原生DOM对象的属性？
         (modifiers || (modifiers = {})).prop = true
         name = `.` + name.slice(1).replace(modifierRE, '')
       } else if (modifiers) {
+        // 将修饰符从指令字符串中移除
         name = name.replace(modifierRE, '')
       }
       if (bindRE.test(name)) { // v-bind
+        // 去掉v-bind指令：:name -> name
         name = name.replace(bindRE, '')
         value = parseFilters(value)
         isDynamic = dynamicArgRE.test(name)
@@ -942,6 +953,7 @@ function processAttrs (el) {
             `The value for a v-bind expression cannot be empty. Found in "v-bind:${name}"`
           )
         }
+        // 处理v-bind的三个修饰符：prop、camel、sync
         if (modifiers) {
           if (modifiers.prop && !isDynamic) {
             name = camelize(name)
@@ -950,6 +962,7 @@ function processAttrs (el) {
           if (modifiers.camel && !isDynamic) {
             name = camelize(name)
           }
+          // 修饰符sync是一个语法糖，实质是从子组件发出一个叫'update:xx'的事件（xx为对应的驼峰化prop），父组件监听此事件并修改对应的值
           if (modifiers.sync) {
             syncGen = genAssignmentCode(value, `$event`)
             if (!isDynamic) {
@@ -1022,6 +1035,7 @@ function processAttrs (el) {
       }
     } else {
       // literal attribute
+      // 字面量属性，即静态属性
       if (process.env.NODE_ENV !== 'production') {
         const res = parseText(value, delimiters)
         if (res) {
@@ -1046,6 +1060,7 @@ function processAttrs (el) {
   }
 }
 
+// 判断当前元素是否有v-for指令，或在v-for指令包裹之中
 function checkInFor (el: ASTElement): boolean {
   let parent = el
   while (parent) {
@@ -1057,6 +1072,15 @@ function checkInFor (el: ASTElement): boolean {
   return false
 }
 
+/**
+ * 解析修饰符
+ * <div @click.stop.prevent="doThat"></div>
+ * @param name 'click.stop.prevent'
+ * @returns {
+ *    stop: true,
+ *    prevent: true
+ * }
+ */
 function parseModifiers (name: string): Object | void {
   const match = name.match(modifierRE)
   if (match) {
