@@ -927,6 +927,7 @@ function processAttrs (el) {
       // mark element as dynamic
       el.hasBindings = true
       // modifiers
+      // 解析修饰符
       modifiers = parseModifiers(name.replace(dirRE, ''))
       // support .foo shorthand syntax for the .prop modifier
       if (process.env.VBIND_PROP_SHORTHAND && propBindRE.test(name)) {
@@ -954,6 +955,7 @@ function processAttrs (el) {
           )
         }
         // 处理v-bind的三个修饰符：prop、camel、sync
+        // .prop修饰符 用于设置标签的DOM对象所对应的同名属性（https://cn.vuejs.org/v2/api/#v-bind）
         if (modifiers) {
           if (modifiers.prop && !isDynamic) {
             name = camelize(name)
@@ -1016,6 +1018,7 @@ function processAttrs (el) {
         }
         addHandler(el, name, value, modifiers, false, warn, list[i], isDynamic)
       } else { // normal directives
+        // 处理v-text、v-html、v-show、v-cloak、v-model以及其他自定义指令（如<div v-zz:arg.modif="test"></div>，实际处理到这里不会有修饰符了）
         name = name.replace(dirRE, '')
         // parse arg
         const argMatch = name.match(argRE)
@@ -1028,6 +1031,7 @@ function processAttrs (el) {
             isDynamic = true
           }
         }
+        // addDirective(el, 'zz', 'v-zz:arg.modif', 'test', 'arg', false, { modif: true }, list[i])
         addDirective(el, name, rawName, value, arg, isDynamic, modifiers, list[i])
         if (process.env.NODE_ENV !== 'production' && name === 'model') {
           checkForAliasModel(el, value)

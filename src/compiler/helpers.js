@@ -67,6 +67,7 @@ function prependModifierMarker (symbol: string, name: string, dynamic?: boolean)
     : symbol + name // mark the event as captured
 }
 
+// 【v-on】https://cn.vuejs.org/v2/api/#v-on
 export function addHandler (
   el: ASTElement,
   name: string,
@@ -80,6 +81,7 @@ export function addHandler (
   modifiers = modifiers || emptyObject
   // warn prevent and passive modifier
   /* istanbul ignore if */
+  // passive表示不阻止事件的默认行为。prevent与其连用时，将会被忽略
   if (
     process.env.NODE_ENV !== 'production' && warn &&
     modifiers.prevent && modifiers.passive
@@ -94,6 +96,8 @@ export function addHandler (
   // normalize click.right and click.middle since they don't actually fire
   // this is technically browser-specific, but at least for now browsers are
   // the only target envs that have right/middle clicks.
+
+  // https://github.com/vuejs/vue/issues/7020
   if (modifiers.right) {
     if (dynamic) {
       name = `(${name})==='click'?'contextmenu':(${name})`
@@ -110,15 +114,18 @@ export function addHandler (
   }
 
   // check capture modifier
+  // 事件捕获模式
   if (modifiers.capture) {
     delete modifiers.capture
     name = prependModifierMarker('!', name, dynamic)
   }
+  // 事件只会触发一次
   if (modifiers.once) {
     delete modifiers.once
     name = prependModifierMarker('~', name, dynamic)
   }
   /* istanbul ignore if */
+  // 不阻止事件的默认行为
   if (modifiers.passive) {
     delete modifiers.passive
     name = prependModifierMarker('&', name, dynamic)
@@ -132,6 +139,26 @@ export function addHandler (
     events = el.events || (el.events = {})
   }
 
+  /**
+   TODO 为何要这样做：.capture -> !、.once -> ~、.passive -> &
+   <div @click.prevent="handleClick1" @click="handleClick2" @click.self="handleClick3"></div>
+
+   el.events = {
+      "click": [{
+        value: "handleClick1",
+        dynamic: false,
+        modifiers: { prevent: true }
+     }, {
+        value: "handleClick2",
+        dynamic: false,
+        modifiers: {}
+     }, {
+        value: "handleClick3",
+        dynamic: false,
+        modifiers: { self: true }
+     }]
+   }
+   */
   const newHandler: any = rangeSetItem({ value: value.trim(), dynamic }, range)
   if (modifiers !== emptyObject) {
     newHandler.modifiers = modifiers
@@ -247,6 +274,7 @@ export function getAndRemoveAttrByRegex (
   }
 }
 
+// 为item添加start、end属性
 function rangeSetItem (
   item: any,
   range?: { start?: number, end?: number }
