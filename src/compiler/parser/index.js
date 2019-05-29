@@ -89,6 +89,7 @@ let platformMustUseProp
 let platformGetTagNamespace
 let maybeComponent
 
+// 创建一个ast描述对象
 export function createASTElement (
   tag: string,
   attrs: Array<ASTAttr>,
@@ -568,6 +569,7 @@ export function processElement (
   processSlotContent(element)
   processSlotOutlet(element)
   processComponent(element)
+  // 处理class、style属性
   for (let i = 0; i < transforms.length; i++) {
     element = transforms[i](element, options) || element
   }
@@ -1039,7 +1041,8 @@ function processAttrs (el) {
       }
     } else {
       // literal attribute
-      // 字面量属性，即静态属性
+      // 对字面量属性做一个提示，让其改用v-bind写法
+      // <div id="{{ isTrue ? 'a' : 'b' }}"></div>
       if (process.env.NODE_ENV !== 'production') {
         const res = parseText(value, delimiters)
         if (res) {
@@ -1052,9 +1055,14 @@ function processAttrs (el) {
           )
         }
       }
+      // 将非指令属性添加到el.attrs中
+      // TODO 为何要JSON.stringify(value)
       addAttr(el, name, JSON.stringify(value), list[i])
       // #6887 firefox doesn't update muted state if set via attribute
       // even immediately after element creation
+      // https://github.com/vuejs/vue/issues/6887
+      // 在由虚拟DOM创建真实DOM的过程中，会通过setAttribute方法将el.attrs数组中的属性添加到真实DOM元素上
+      // 而在火狐浏览器中，无法通过DOM元素的setAttribute方法为video标签添加muted属性，需要使用真实DOM对象的属性方式添加
       if (!el.component &&
           name === 'muted' &&
           platformMustUseProp(el.tag, el.attrsMap.type, name)) {
@@ -1160,6 +1168,20 @@ function guardIESVGBug (attrs) {
   return res
 }
 
+/**
+ * 循环向上查找
+ * 如果在v-for中v-model的值为基本类型值，则v-model对应的修改不会体现到v-for的数组里，如下所示
+ * <div v-for="item of [1, 2, 3]">
+ *  <input v-model="item" />
+ * </div>
+ *
+ * 需要将v-for的数组改为对象数组
+ * <div v-for="obj of [{ item: 1 }, { item: 2 }, { item: 3 }]">
+ *   <input v-model="obj.item" />
+ * </div>
+ * @param el
+ * @param value
+ */
 function checkForAliasModel (el, value) {
   let _el = el
   while (_el) {
