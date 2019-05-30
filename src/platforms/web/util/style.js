@@ -2,9 +2,27 @@
 
 import { cached, extend, toObject } from 'shared/util'
 
+/**
+ 将非绑定的style属性解析为对象形式
+ <div style="color: red; background: green;"></div>
+
+ @cssText String "color: red; background: green;"
+ @return {
+    color: 'red',
+    background: 'green'
+  }
+ */
 export const parseStyleText = cached(function (cssText) {
   const res = {}
+  // <div style="color: red; background: url(data:image/jpg;base64,iVBORw0KGg...);"></div>
+  // 不局限于background，也有可能是border-image
+  // style以";"来区分每一个样式。此时，有一种额外的情况，如果background:url()中带有";"，会造成误判，思路如下
+  // 排除掉";"后面跟")"的情况：/;(?!.*\))/g
+  // 对于"color: red;"来说，";"是合法的，因为后面的")"之前存在"("，将其完整包裹起来
   const listDelimiter = /;(?![^(]*\))/g
+  // 表示匹配第一个":"到最后，不能直接用/:/
+  // 'background: url(https://vuejs.org/images/logo.png)'.split(/:/)
+  // -> ["background", " url(https", "//vuejs.org/images/logo.png)"]
   const propertyDelimiter = /:(.+)/
   cssText.split(listDelimiter).forEach(function (item) {
     if (item) {

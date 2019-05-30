@@ -423,14 +423,17 @@ export function parse (
     },
     // 遇到纯文本时调用
     chars (text: string, start: number, end: number) {
+      // 当前是根节点（没有父节点）
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
+          // 根节点都是文字的情况
           if (text === template) {
             warnOnce(
               'Component template requires a root element, rather than just text.',
               { start }
             )
           } else if ((text = text.trim())) {
+            // text<root>主内容</root>text
             warnOnce(
               `text "${text}" outside root element will be ignored.`,
               { start }
@@ -440,6 +443,7 @@ export function parse (
         return
       }
       // IE textarea placeholder bug
+      // https://github.com/vuejs/vue/issues/4098
       /* istanbul ignore if */
       if (isIE &&
         currentParent.tag === 'textarea' &&

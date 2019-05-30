@@ -3,9 +3,11 @@
 import { cached } from 'shared/util'
 import { parseFilters } from './filter-parser'
 
+// https://github.com/vuejs/vue/issues/8103
 const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
 const regexEscapeRE = /[-.*+?^${}()|[\]\/\\]/g
 
+// 将自定义的定界符{xxx} 转换成 $&xxx$&
 const buildRegex = cached(delimiters => {
   const open = delimiters[0].replace(regexEscapeRE, '\\$&')
   const close = delimiters[1].replace(regexEscapeRE, '\\$&')
@@ -17,6 +19,8 @@ type TextParseResult = {
   tokens: Array<string | { '@binding': string }>
 }
 
+// 解析字面量表达式，并返回对应的值，<div class="{{ isActive ? 'active' : '' }}"></div>
+// 如果没有使用字面量表达式，则返回undefined
 export function parseText (
   text: string,
   delimiters?: [string, string]

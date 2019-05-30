@@ -12,6 +12,7 @@ function transformNode (el: ASTElement, options: CompilerOptions) {
   const staticClass = getAndRemoveAttr(el, 'class')
   if (process.env.NODE_ENV !== 'production' && staticClass) {
     const res = parseText(staticClass, options.delimiters)
+    // 如果非绑定的class属性使用了字面量表达式，则提示换成绑定形式，即:class
     if (res) {
       warn(
         `class="${staticClass}": ` +
@@ -23,8 +24,10 @@ function transformNode (el: ASTElement, options: CompilerOptions) {
     }
   }
   if (staticClass) {
+    // el.staticClass会被当作js直接处理，这里需要字符串化
     el.staticClass = JSON.stringify(staticClass)
   }
+  // 只获取:class属性值
   const classBinding = getBindingAttr(el, 'class', false /* getStatic */)
   if (classBinding) {
     el.classBinding = classBinding
