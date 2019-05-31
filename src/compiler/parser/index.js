@@ -171,7 +171,7 @@ export function parse (
   delimiters = options.delimiters
 
   const stack = []
-  // 编译html字符串时是否放弃标签之间的空格
+  // 编译html字符串时是否保留标签之间的空格
   const preserveWhitespace = options.preserveWhitespace !== false
   const whitespaceOption = options.whitespace
   let root
@@ -187,7 +187,7 @@ export function parse (
     }
   }
 
-  // 每当遇到一个标签的结束标签时，或遇到一元标签时都会调用该方法“闭合”标签
+  // 遇到一元标签或非一元标签的结束标签时，都会调用该方法“闭合”标签
   function closeElement (element) {
     trimEndingWhitespace(element)
     if (!inVPre && !element.processed) {
@@ -242,9 +242,11 @@ export function parse (
     trimEndingWhitespace(element)
 
     // check pre state
+    // 由于起始标签使用了v-pre，这里需要将inVPre设为false
     if (element.pre) {
       inVPre = false
     }
+    // 由于起始标签为<pre>，这里需要将inPre设为false
     if (platformIsPreTag(element.tag)) {
       inPre = false
     }
@@ -254,6 +256,8 @@ export function parse (
     }
   }
 
+  // 移除当前元素最后一个空白子节点
+  // <div><span>test</span>     <!-- 空白占位 -->     </div>
   function trimEndingWhitespace (el) {
     // remove trailing whitespace node
     if (!inPre) {
@@ -413,7 +417,9 @@ export function parse (
     // 每次遇到结束标签时调用
     end (tag, start, end) {
       const element = stack[stack.length - 1]
+      // TODO https://github.com/vuejs/vue/issues/9208
       // pop stack
+      // 移除当前节点
       stack.length -= 1
       currentParent = stack[stack.length - 1]
       if (process.env.NODE_ENV !== 'production' && options.outputSourceRange) {
@@ -444,6 +450,16 @@ export function parse (
       }
       // IE textarea placeholder bug
       // https://github.com/vuejs/vue/issues/4098
+      /**
+       <div id="box">
+        <textarea placeholder="some placeholder..."></textarea>
+       </div>
+
+       在IE下，<textarea>标签拥有placeholder属性，但却没有真实的文本内容
+       假如使用如下代码获取字符串内容，<textarea>标签的placeholder属性的属性值会被设置为<textarea>的真实文本内容
+       这并不是<textarea>的真实文本内容，因此return不处理
+       document.getElementById('box').innerHTML   // '<textarea placeholder="some placeholder...">some placeholder...</textarea>'
+       */
       /* istanbul ignore if */
       if (isIE &&
         currentParent.tag === 'textarea' &&
@@ -452,12 +468,20 @@ export function parse (
         return
       }
       const children = currentParent.children
+      // <pre>标签中的处理方式，与正常文本节点相同
+      // else if 处理不在<pre>标签中的空格字符
       if (inPre || text.trim()) {
+        // 1、在html中，某些字符是预留字符，如"<"、">"，直接使用会被浏览器误认为是标签。如果希望正确地显示预留字符，需要使用字符实体。最后浏览器将其渲染为字符节点"<"、">"
+        //    "&lt;div&gt;&lt;/div&gt;" -> "<div></div>"
+        //    由于vue中最后是通过document.createTextNode将文本内容直接插入节点中，因此需要解析字符实体
+        // 2、如果文本被包含在<script>、<style>标签中，则保持原样
         text = isTextTag(currentParent) ? text : decodeHTMLCached(text)
       } else if (!children.length) {
         // remove the whitespace-only node right after an opening tag
+        // 如果当前文本节点的父节点没有子元素，则不保留空格
         text = ''
       } else if (whitespaceOption) {
+        // TODO https://github.com/vuejs/vue/issues/9208
         if (whitespaceOption === 'condense') {
           // in condense mode, remove the whitespace node if it contains
           // line break, otherwise condense to a single space
@@ -468,13 +492,20 @@ export function parse (
       } else {
         text = preserveWhitespace ? ' ' : ''
       }
+      // 1、真正的文本节点
+      // 2、空格字符：
+      //    1）whitespaceOption选项为"condense"，且文本节点没有换行
+      //    2）whitespaceOption选项不为"condense"
+      //    3）preserveWhitespace选项为true
       if (text) {
+        // TODO
         if (!inPre && whitespaceOption === 'condense') {
           // condense consecutive whitespaces into single space
           text = text.replace(whitespaceRE, ' ')
         }
         let res
         let child: ?ASTNode
+        // 解析包含字面量表达式的文本节点：<div>我的名字是：{{ name }}</div>
         if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) {
           child = {
             type: 2,
@@ -483,6 +514,7 @@ export function parse (
             text
           }
         } else if (text !== ' ' || !children.length || children[children.length - 1].text !== ' ') {
+          // TODO 分析else if的情况
           child = {
             type: 3,
             text
