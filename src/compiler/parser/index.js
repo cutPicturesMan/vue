@@ -96,9 +96,12 @@ export function createASTElement (
   parent: ASTElement | void
 ): ASTElement {
   return {
+    // 1表示标签，2表示包含字面量表达式的文本节点，3表示普通文本节点或注释节点
     type: 1,
     tag,
+    // 标签的原始属性数组：[{name: 'class', value: 'foo'}]
     attrsList: attrs,
+    // attrsList对应的对象形式：{'class': 'foo'}
     attrsMap: makeAttrsMap(attrs),
     rawAttrsMap: {},
     parent,
@@ -109,7 +112,8 @@ export function createASTElement (
 /**
  * Convert HTML string to AST.
  * 将html字符串转为ast树
-
+ * 实时参考：http://hcysun.me/vue-template-compiler-playground/
+ *
   html字符串：
     <ul>
       <li>
@@ -533,6 +537,8 @@ export function parse (
     comment (text: string, start, end) {
       // adding anyting as a sibling to the root node is forbidden
       // comments should still be allowed, but ignored
+      // https://github.com/vuejs/vue/issues/9407
+      // 忽略根节点的注释
       if (currentParent) {
         const child: ASTText = {
           type: 3,
@@ -953,7 +959,26 @@ function processComponent (el) {
   }
 }
 
-// 处理el.attrsList数组中剩余的所有属性的
+/**
+ *
+ * 处理el.attrsList数组中剩余的属性：
+ * 1、v-text、v-html、v-show、v-on、v-bind、v-model、v-cloak
+ * 2、自定义绑定属性、自定义事件、自定义非绑定属性：
+ *    <div
+ *        :custom-prop="someVal"
+ *        @custom-event="handleEvent"
+ *        other-prop="static-prop"></div>
+ *
+   已处理的指令：
+   v-pre
+   v-for
+   v-if、v-else-if、v-else
+   v-once
+   key
+   ref
+   slot、slot-scope、scope、name
+   is、inline-template
+ */
 function processAttrs (el) {
   const list = el.attrsList
   let i, l, name, rawName, value, modifiers, syncGen, isDynamic

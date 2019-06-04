@@ -117,6 +117,7 @@ function genStatic (el: ASTElement, state: CodegenState): string {
 // v-once
 function genOnce (el: ASTElement, state: CodegenState): string {
   el.onceProcessed = true
+  // 如果是未处理过的v-if，则处理
   if (el.if && !el.ifProcessed) {
     return genIf(el, state)
   } else if (el.staticInFor) {
@@ -148,6 +149,7 @@ export function genIf (
   altGen?: Function,
   altEmpty?: string
 ): string {
+  // 由于v-if的el.ifConditions数组中，第一项就是自身，这里添加标识防止递归处理
   el.ifProcessed = true // avoid recursion
   return genIfConditions(el.ifConditions.slice(), state, altGen, altEmpty)
 }
@@ -162,7 +164,9 @@ function genIfConditions (
     return altEmpty || '_e()'
   }
 
+  // 取出第一个条件
   const condition = conditions.shift()
+  // 第一个条件的内容
   if (condition.exp) {
     return `(${condition.exp})?${
       genTernaryExp(condition.block)

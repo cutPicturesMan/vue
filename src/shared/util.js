@@ -120,9 +120,11 @@ export function makeMap (
 }
 
 /**
+ * 检查是否是内置标签
+ * TODO 为什么不检查<transition>、<transition-group>、<keep-alive>？
+ * https://cn.vuejs.org/v2/api/#component
  * Check if a tag is a built-in tag.
  */
-// TODO <component></component>是内置标签？？？
 export const isBuiltInTag = makeMap('slot,component', true)
 
 /**
