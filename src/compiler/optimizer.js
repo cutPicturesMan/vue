@@ -103,28 +103,50 @@ function markStatic (node: ASTNode) {
   }
 }
 
+/**
+ 如果一个节点有且只有一个静态文本子节点，则不把该节点标记为静态根节点
+ 处理该节点的开销会大于收益，还不如每次重新渲染
+
+ <div>
+   <div>静态文本</div>
+   <div>
+     <p v-if="xxx"></p>
+     <p v-else-if="xxx"></p>
+     <p v-else></p>
+   </div>
+ </div>
+ * @param node
+ * @param isInFor
+ */
 function markStaticRoots (node: ASTNode, isInFor: boolean) {
   if (node.type === 1) {
+    // v-for循环中子节点如果是静态节点，则做标记
+    // <div v-for="i in 10"><span>hi</span></div>
+    // https://github.com/vuejs/vue/issues/3406
     if (node.static || node.once) {
       node.staticInFor = isInFor
     }
     // For a node to qualify as a static root, it should have children that
     // are not just static text. Otherwise the cost of hoisting out will
     // outweigh the benefits and it's better off to just always render it fresh.
+    // 节点及其子节点都是静态的 && 节点含有子节点 && 子节点不是仅有的一个静态文本节点
     if (node.static && node.children.length && !(
       node.children.length === 1 &&
       node.children[0].type === 3
     )) {
       node.staticRoot = true
+      // 已经处理了我们想要处理的节点，则直接返回
       return
     } else {
       node.staticRoot = false
     }
+    // 递归处理剩余的节点
     if (node.children) {
       for (let i = 0, l = node.children.length; i < l; i++) {
         markStaticRoots(node.children[i], isInFor || !!node.for)
       }
     }
+    // 循环处理if的情况
     if (node.ifConditions) {
       for (let i = 1, l = node.ifConditions.length; i < l; i++) {
         markStaticRoots(node.ifConditions[i].block, isInFor)
