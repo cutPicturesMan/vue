@@ -52,7 +52,10 @@ export function generate (
   }
 }
 
+// 生成创建节点的字符串
 export function genElement (el: ASTElement, state: CodegenState): string {
+  // https://github.com/vuejs/vue/issues/8286
+  // 不编译在v-pre块中的自定义组件
   if (el.parent) {
     el.pre = el.pre || el.parent.pre
   }
