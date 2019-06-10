@@ -13,21 +13,21 @@ import { resolveScopedSlots } from './resolve-scoped-slots'
 import { bindDynamicKeys, prependModifier } from './bind-dynamic-keys'
 
 export function installRenderHelpers (target: any) {
-  target._o = markOnce
-  target._n = toNumber
-  target._s = toString
-  target._l = renderList
-  target._t = renderSlot
-  target._q = looseEqual
+  target._o = markOnce // 单次渲染【codegen/index.js】
+  target._n = toNumber // 将输入转为数字【/src/platforms/web/compiler/directives/model.js】
+  target._s = toString // TODO 分析下具体为啥这么写【parse/text-parser.js】
+  target._l = renderList // 渲染v-for【codegen/index.js】
+  target._t = renderSlot // 渲染<slot>【codegen/index.js】
+  target._q = looseEqual // 判断2个值是否宽松相等【/src/platforms/web/compiler/directives/model.js】
   target._i = looseIndexOf
-  target._m = renderStatic
-  target._f = resolveFilter
+  target._m = renderStatic // 渲染静态树【codegen/index.js】
+  target._f = resolveFilter // 处理过滤器【parse/text-parser.js】
   target._k = checkKeyCodes
-  target._b = bindObjectProps
-  target._v = createTextVNode
-  target._e = createEmptyVNode
-  target._u = resolveScopedSlots
+  target._b = bindObjectProps // 处理v-bind绑定的参数为对象的情况【codegen/index.js】
+  target._v = createTextVNode // 创建文字节点【codegen/index.js】
+  target._e = createEmptyVNode // 创建注释节点【codegen/index.js】
+  target._u = resolveScopedSlots // 解决局部作用域的slot【codegen/index.js】
   target._g = bindObjectListeners
-  target._d = bindDynamicKeys
+  target._d = bindDynamicKeys // 处理动态key绑定 :[key]="xxx"【codegen/index.js】
   target._p = prependModifier
 }

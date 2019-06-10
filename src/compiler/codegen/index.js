@@ -28,6 +28,12 @@ export class CodegenState {
     this.dataGenFns = pluckModuleFunction(options.modules, 'genData')
     this.directives = extend(extend({}, baseDirectives), options.directives)
     const isReservedTag = options.isReservedTag || no
+    /**
+     * 可能是组件的标签：
+     * 1、使用了is属性的标签
+     * 2、非html、svg标签
+     * @param el
+     */
     this.maybeComponent = (el: ASTElement) => !!el.component || !isReservedTag(el.tag)
     this.onceId = 0
     this.staticRenderFns = []
@@ -53,6 +59,13 @@ export function generate (
 }
 
 // 生成创建节点的字符串
+/**
+ * _c 创建节点？/src/core/instance/render.js
+ * 其余参考 /src/core/instance/render-helpers/index.js
+ * @param el
+ * @param state
+ * @returns {*}
+ */
 export function genElement (el: ASTElement, state: CodegenState): string {
   // https://github.com/vuejs/vue/issues/8286
   // 不编译在v-pre块中的自定义组件
@@ -502,6 +515,13 @@ export function genChildren (
 // 0: no normalization needed
 // 1: simple normalization needed (possible 1-level deep nested array)
 // 2: full normalization needed
+/**
+ * 根据子标签，决定规范化的程度
+ * 0：不需要规范化
+ * 1：简单规范化
+ * 2：充分规范化
+ */
+// TODO 啥是规范化？
 function getNormalizationType (
   children: Array<ASTNode>,
   maybeComponent: (el: ASTElement) => boolean
@@ -512,11 +532,13 @@ function getNormalizationType (
     if (el.type !== 1) {
       continue
     }
+    // 该子级标签需要规范化 || 该子级标签的ifConditions中有一个需要规范化，立马跳出循环
     if (needsNormalization(el) ||
         (el.ifConditions && el.ifConditions.some(c => needsNormalization(c.block)))) {
       res = 2
       break
     }
+    // 该子标签如果是组件 || 该子级标签的ifConditions中有一个是组件，则设为1，并继续循环
     if (maybeComponent(el) ||
         (el.ifConditions && el.ifConditions.some(c => maybeComponent(c.block)))) {
       res = 1
@@ -525,20 +547,36 @@ function getNormalizationType (
   return res
 }
 
+/**
+ * 需要规范化的3种标签
+ * 1、使用了v-for属性
+ * 2、<template>标签
+ * 3、<slot>标签
+ * @param el
+ * @returns {boolean}
+ */
 function needsNormalization (el: ASTElement): boolean {
   return el.for !== undefined || el.tag === 'template' || el.tag === 'slot'
 }
 
 function genNode (node: ASTNode, state: CodegenState): string {
+  // 处理标签
   if (node.type === 1) {
     return genElement(node, state)
   } else if (node.type === 3 && node.isComment) {
+    // 处理注释节点
     return genComment(node)
   } else {
+    // 处理文本节点
     return genText(node)
   }
 }
 
+/**
+ * 处理包含字面量表达式的文本节点(type = 2)和普通文本节点(type = 3)
+ * @param text
+ * @returns {string}
+ */
 export function genText (text: ASTText | ASTExpression): string {
   return `_v(${text.type === 2
     ? text.expression // no need for () because already wrapped in _s()
@@ -546,6 +584,11 @@ export function genText (text: ASTText | ASTExpression): string {
   })`
 }
 
+/**
+ * 返回注释文字
+ * @param comment <!-- 我是注释 -->
+ * @returns {string} '_e("我是注释")'
+ */
 export function genComment (comment: ASTText): string {
   return `_e(${JSON.stringify(comment.text)})`
 }
@@ -594,6 +637,7 @@ function genProps (props: Array<ASTAttr>): string {
     const prop = props[i]
     const value = __WEEX__
       ? generateValue(prop.value)
+      // 处理属性中的换行符
       : transformSpecialNewlines(prop.value)
     if (prop.dynamic) {
       dynamicProps += `${prop.name},${value},`
@@ -618,6 +662,11 @@ function generateValue (value) {
 }
 
 // #3895, #4268
+// js字符串如果存在换行，会导致json解析失败，这里需要转义
+// TODO 这里没能复现。。。
+// https://github.com/vuejs/vue/issues/3895
+// http://ecma-international.org/ecma-262/5.1/#sec-7.3
+// https://www.cnblogs.com/rrooyy/p/5349978.html
 function transformSpecialNewlines (text: string): string {
   return text
     .replace(/\u2028/g, '\\u2028')

@@ -57,6 +57,7 @@ export function parseText (
    ]
    tokens = [
       "'abc'",
+      TODO _s和_f什么时候存在？
       "_f(formatDate)(date)",
       "'def'"
    ]
