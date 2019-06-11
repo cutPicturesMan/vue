@@ -19,15 +19,15 @@ export function installRenderHelpers (target: any) {
   target._l = renderList // 渲染v-for【codegen/index.js】
   target._t = renderSlot // 渲染<slot>【codegen/index.js】
   target._q = looseEqual // 判断2个值是否宽松相等【/src/platforms/web/compiler/directives/model.js】
-  target._i = looseIndexOf
+  target._i = looseIndexOf // 查找对象在数组中的位置
   target._m = renderStatic // 渲染静态树【codegen/index.js】
   target._f = resolveFilter // 处理过滤器【parse/text-parser.js】
-  target._k = checkKeyCodes
+  target._k = checkKeyCodes // TODO 看event时再分析【/src/compiler/codegen/events.js】
   target._b = bindObjectProps // 处理v-bind绑定的参数为对象的情况【codegen/index.js】
   target._v = createTextVNode // 创建文字节点【codegen/index.js】
   target._e = createEmptyVNode // 创建注释节点【codegen/index.js】
   target._u = resolveScopedSlots // 解决局部作用域的slot【codegen/index.js】
-  target._g = bindObjectListeners
+  target._g = bindObjectListeners // 绑定对象监听【/src/compiler/directives/on.js】
   target._d = bindDynamicKeys // 处理动态key绑定 :[key]="xxx"【codegen/index.js】
-  target._p = prependModifier
+  target._p = prependModifier  // 为事件动态添加修饰符【/src/compiler/helpers.js】
 }

@@ -60,15 +60,15 @@ export function generate (
 
 // 生成创建节点的字符串
 /**
- * _c 创建节点？/src/core/instance/render.js
- * 其余参考 /src/core/instance/render-helpers/index.js
+ * _c 创建节点【/src/core/instance/render.js】
+ * 其余参考 【/src/core/instance/render-helpers/index.js】
  * @param el
  * @param state
  * @returns {*}
  */
 export function genElement (el: ASTElement, state: CodegenState): string {
+  // 将处于v-pre包裹下的标签，打上标记
   // https://github.com/vuejs/vue/issues/8286
-  // 不编译在v-pre块中的自定义组件
   if (el.parent) {
     el.pre = el.pre || el.parent.pre
   }
@@ -88,10 +88,15 @@ export function genElement (el: ASTElement, state: CodegenState): string {
   } else {
     // component or element
     let code
+    // 处理组件
     if (el.component) {
       code = genComponent(el.component, el, state)
     } else {
+      // 处理标签
       let data
+      // el.plain为true：1、v-pre标签的子标签；2、没有使用key属性、slot属性、以及其他属性（但可以使用结构相关的指令）的标签
+      // 处于v-pre块包裹下的自定义组件 TODO 这种情况只要原样展示就好，为什么要解析？
+      // https://github.com/vuejs/vue/issues/8286
       if (!el.plain || (el.pre && state.maybeComponent(el))) {
         data = genData(el, state)
       }

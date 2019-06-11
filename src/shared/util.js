@@ -294,19 +294,30 @@ export function genStaticKeys (modules: Array<ModuleOptions>): string {
  * Check if two values are loosely equal - that is,
  * if they are plain objects, do they have the same shape?
  */
+// 检查两个值是否相等
+// 如果是基本类型，需要严格全等
+// 如果是对象，其形状相同即可判定为相等
+// TODO 基本类型、引用类型的值的相等判断
+// #3673 https://jsfiddle.net/vuetest/sxoz7624/3/
 export function looseEqual (a: any, b: any): boolean {
+  // 如果全相等，则直接返回
   if (a === b) return true
   const isObjectA = isObject(a)
   const isObjectB = isObject(b)
+  // 两个值都是对象
   if (isObjectA && isObjectB) {
     try {
       const isArrayA = Array.isArray(a)
       const isArrayB = Array.isArray(b)
+      // 两个都是数组，需要判断数组中的每一个值是否相等
+      // TODO 不能单纯使用JSON.stringify进行比较的理由：https://github.com/vuejs/vue/issues/5908
       if (isArrayA && isArrayB) {
         return a.length === b.length && a.every((e, i) => {
           return looseEqual(e, b[i])
         })
       } else if (a instanceof Date && b instanceof Date) {
+        // 两个都是日期，需要特殊处理一下
+        // https://github.com/vuejs/vue/issues/3969
         return a.getTime() === b.getTime()
       } else if (!isArrayA && !isArrayB) {
         const keysA = Object.keys(a)
@@ -334,6 +345,7 @@ export function looseEqual (a: any, b: any): boolean {
  * found in the array (if value is a plain object, the array must
  * contain an object of the same shape), or -1 if it is not present.
  */
+// 与Array.indexOf功能相同，支持查找格式相同的非同源对象在数组中的位置
 export function looseIndexOf (arr: Array<mixed>, val: mixed): number {
   for (let i = 0; i < arr.length; i++) {
     if (looseEqual(arr[i], val)) return i
@@ -342,6 +354,7 @@ export function looseIndexOf (arr: Array<mixed>, val: mixed): number {
 }
 
 /**
+ * 利用闭包，确保函数只执行一次
  * Ensure a function is called only once.
  */
 export function once (fn: Function): Function {

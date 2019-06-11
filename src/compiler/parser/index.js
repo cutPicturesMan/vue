@@ -599,8 +599,8 @@ export function processElement (
 
   // determine whether this is a plain element after
   // removing structural attributes
+  // 在移除了结构相关的指令之后，没有使用key属性、slot属性、以及其他属性的标签，才会被认为是纯的
   // 结构化指令：v-for、v-if/v-else-if/v-else、v-once
-  // 只有当标签没有使用key属性、slot属性，并且标签只使用了结构化指令的情况下才被认为是“纯”的
   element.plain = (
     !element.key &&
     !element.scopedSlots &&
