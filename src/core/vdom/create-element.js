@@ -33,11 +33,16 @@ export function createElement (
   normalizationType: any,
   alwaysNormalize: boolean
 ): VNode | Array<VNode> {
+  // 这里实际上是判断当前data（Object）类型，是否属于children的合法类型（String | Array）
+  // 如果是，则表示没有属性需要赋值，直接省略data，所有参数前移一位
+  // TODO 验证：这里之所以使用isPrimitive而不是判断String的原因，是因为children内部会将基本类型转为String
+  // https://cn.vuejs.org/v2/guide/render-function.html#createElement-参数
   if (Array.isArray(data) || isPrimitive(data)) {
     normalizationType = children
     children = data
     data = undefined
   }
+  // 通过调用render函数来渲染页面，需要标准化参数children
   if (isTrue(alwaysNormalize)) {
     normalizationType = ALWAYS_NORMALIZE
   }

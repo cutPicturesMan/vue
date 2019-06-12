@@ -3,13 +3,20 @@
 import VNode, { createTextVNode } from 'core/vdom/vnode'
 import { isFalse, isTrue, isDef, isUndef, isPrimitive } from 'shared/util'
 
+// 模板编译器试图在编译阶段，通过静态分析模板，将标准化的需求最小化
 // The template compiler attempts to minimize the need for normalization by
 // statically analyzing the template at compile time.
 //
+// 对于纯的HTML标签，由于渲染函数能够保证返回Array<VNode>，因此可以跳过
+// 以下有2种情况需要额外的标准化
 // For plain HTML markup, normalization can be completely skipped because the
 // generated render function is guaranteed to return Array<VNode>. There are
 // two cases where extra normalization is needed:
 
+// 1、当子标签包含组件时，需要标准化
+// 因为函数式组件可能会返回数组来代替单一根节点
+// 这种情况下，只需要简单标准化即可：如果任意子级是数组，我们通过Array.prototype.concat将数组打平
+// 它可以保证只有1级深，因为函数式组件已经将其子级标准化了
 // 1. When the children contains components - because a functional component
 // may return an Array instead of a single root. In this case, just a simple
 // normalization is needed - if any child is an Array, we flatten the whole
@@ -18,12 +25,15 @@ import { isFalse, isTrue, isDef, isUndef, isPrimitive } from 'shared/util'
 export function simpleNormalizeChildren (children: any) {
   for (let i = 0; i < children.length; i++) {
     if (Array.isArray(children[i])) {
+      // apply接收数组为参数，通过其将children数组打平 [[1]] -> [1]
       return Array.prototype.concat.apply([], children)
     }
   }
   return children
 }
 
+// 2、当子标签包含构造器时，总会生成嵌套的数组，如<template>、<slot>、v-for以及用户通过render渲染函数/JSX手写的子标签
+// 这种情况需要全面的标准化，来满足子标签所有可能的类型
 // 2. When the children contains constructs that always generated nested Arrays,
 // e.g. <template>, <slot>, v-for, or when the children is provided by user
 // with hand-written render functions / JSX. In such cases a full normalization
