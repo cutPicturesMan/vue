@@ -36,6 +36,7 @@ export function bindObjectProps (
         if (
           key === 'class' ||
           key === 'style' ||
+          // https://github.com/vuejs/vue/issues/5881
           isReservedAttribute(key)
         ) {
           hash = data
