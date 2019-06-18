@@ -533,6 +533,30 @@ export function mergeOptions (
 }
 
 /**
+ 先查找options.components本身上的组件声明，即局部声明的组件
+ 没有找到的话，在通过原型链查找全局声明的组件
+
+ * 局部声明组件
+ <template>
+   <div>
+    <my-component></my-component>
+   </div>
+ </template>
+
+ <script>
+   import myComponent from './myComponent.vue'
+
+   export default {
+    components: {
+      myComponent
+    }
+  }
+ </script>
+
+ * 全局声明的组件
+ * 当全局声明的组件名称与局部声明的完全一样时，如果先查找相同的组件名称，那么会找到全局组件上，局部组件完全不会初始化
+ Vue.component('my-component', {...})
+
  * Resolve an asset.
  * This function is used because child instances need access
  * to assets defined in its ancestor chain.
@@ -547,15 +571,22 @@ export function resolveAsset (
   if (typeof id !== 'string') {
     return
   }
+  // 即options.components
   const assets = options[type]
   // check local registration variations first
+  // 在options.components对象本身上依次查找：my-component -> myComponent -> MyComponent
+  // my-component
   if (hasOwn(assets, id)) return assets[id]
+  // myComponent
   const camelizedId = camelize(id)
   if (hasOwn(assets, camelizedId)) return assets[camelizedId]
+  // MyComponent
   const PascalCaseId = capitalize(camelizedId)
   if (hasOwn(assets, PascalCaseId)) return assets[PascalCaseId]
   // fallback to prototype chain
+  // 在options.components对象本身上没有找到，则去其原型链上依次查找：my-component -> myComponent -> MyComponent
   const res = assets[id] || assets[camelizedId] || assets[PascalCaseId]
+  // 都没有找到，则提示
   if (process.env.NODE_ENV !== 'production' && warnMissing && !res) {
     warn(
       'Failed to resolve ' + type.slice(0, -1) + ': ' + id,

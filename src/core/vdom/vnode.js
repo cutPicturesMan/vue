@@ -39,25 +39,45 @@ export default class VNode {
     componentOptions?: VNodeComponentOptions,
     asyncFactory?: Function
   ) {
+    // 标签名
     this.tag = tag
+    // 数据对象，具体看flow/vnode.js
     this.data = data
+    // 子标签数组
     this.children = children
+    // 文本内容
     this.text = text
+    // 当前虚拟节点对应的真实dom
     this.elm = elm
+    // 名字空间
     this.ns = undefined
+    // 编译作用域
     this.context = context
+    // 函数化组件作用域
     this.fnContext = undefined
+    //
     this.fnOptions = undefined
+    //
     this.fnScopeId = undefined
+    // key标识
     this.key = data && data.key
+    // 组件option选项
     this.componentOptions = componentOptions
+    // 当前对应的组件实例
     this.componentInstance = undefined
+    // 父节点
     this.parent = undefined
+    // 是否是原生HTML或只是普通文本，innerHTML的时候为true，textContent的时候为false
     this.raw = false
+    // 是否是静态节点
     this.isStatic = false
+    // 是否作为根节点插入，进入过渡时需要用到
     this.isRootInsert = true
+    // 是否是注释节点
     this.isComment = false
+    // 是否是克隆节点
     this.isCloned = false
+    // 是否有v-once指令
     this.isOnce = false
     this.asyncFactory = asyncFactory
     this.asyncMeta = undefined
@@ -71,6 +91,8 @@ export default class VNode {
   }
 }
 
+// 创建空vnode节点
+// TODO 这个节点渲染出来之后是空注释？<!-- -->
 export const createEmptyVNode = (text: string = '') => {
   const node = new VNode()
   node.text = text
@@ -78,10 +100,14 @@ export const createEmptyVNode = (text: string = '') => {
   return node
 }
 
+// 创建文本节点
 export function createTextVNode (val: string | number) {
   return new VNode(undefined, undefined, undefined, String(val))
 }
 
+// 优化浅拷贝
+// 主要用于静态节点和slot节点，因为他们可能多次渲染之间被重用
+// 复制他们可以避免依赖于VNode.elm的DOM操作产生错误
 // optimized shallow clone
 // used for static nodes and slot nodes because they may be reused across
 // multiple renders, cloning them avoids errors when DOM manipulations rely

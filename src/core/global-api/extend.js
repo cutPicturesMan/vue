@@ -6,6 +6,8 @@ import { extend, mergeOptions, validateComponentName } from '../util/index'
 
 export function initExtend (Vue: GlobalAPI) {
   /**
+   * 每一个实例化的构造器，包括Vue，都有一个唯一的cid
+   * 这让我们能够创建包裹着子构造器的原型继承，并缓存它们
    * Each instance constructor, including Vue, has a unique
    * cid. This enables us to create wrapped "child
    * constructors" for prototypal inheritance and cache them.
@@ -14,14 +16,20 @@ export function initExtend (Vue: GlobalAPI) {
   let cid = 1
 
   /**
+   * 类继承，返回Vue对象的子类
    * Class inheritance
    */
   // TODO extend的作用
   Vue.extend = function (extendOptions: Object): Function {
     extendOptions = extendOptions || {}
+    // 即Vue
     const Super = this
+    // Vue.cid，即0
     const SuperId = Super.cid
+    // extendOptions._Ctor用于缓存构造函数
     const cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {})
+    // 使用自定子组件的时候会调用Vue.extend，初次生成vnode的时候生成新构造函数并缓存
+    // 如果页面数据有更新，则会重新生成vnode并做diff，在第二次生成vnode过程中，调用Vue.extend就会直接从缓存中取
     if (cachedCtors[SuperId]) {
       return cachedCtors[SuperId]
     }
