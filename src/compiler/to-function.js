@@ -34,7 +34,7 @@ export function createCompileToFunctionFn (compile: Function): Function {
     /* istanbul ignore if */
     if (process.env.NODE_ENV !== 'production') {
       // detect possible CSP restriction
-      // TODO 了解CSP
+      // TODO 了解CSP https://developers.google.com/web/fundamentals/security/csp/?hl=zh-cn#top_of_page
       try {
         new Function('return 1')
       } catch (e) {

@@ -186,6 +186,24 @@ function mergeHook (
     : res
 }
 
+/**
+ * 过滤掉由Vue.mixin()带来重复的生命周期钩子
+ * 下例未过滤前created执行2次，过滤后created执行1次
+ Vue.mixin({
+    created() {
+      spy()
+    }
+  })
+
+ const mixin = Vue.extend({})
+
+ const Child = Vue.extend({
+    mixins: [mixin],
+    created() {}
+  })
+
+ const vm = new Child()
+ */
 function dedupeHooks (hooks) {
   const res = []
   for (let i = 0; i < hooks.length; i++) {

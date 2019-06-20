@@ -34,8 +34,15 @@ export function initExtend (Vue: GlobalAPI) {
       return cachedCtors[SuperId]
     }
 
+    /**
+     const Test = Vue.extend({ name: 'z' })
+     const Test2 = Test.extend({})
+
+     Test.extend({})时会使用到父级options的name
+     */
     const name = extendOptions.name || Super.options.name
     if (process.env.NODE_ENV !== 'production' && name) {
+      // 校验组件名称是否合法（name会直接当成组件名称来使用）
       validateComponentName(name)
     }
 
@@ -80,8 +87,11 @@ export function initExtend (Vue: GlobalAPI) {
     // keep a reference to the super options at extension time.
     // later at instantiation we can check if Super's options have
     // been updated.
+    // 由于mixin操作会重新赋值Vue.options，经过mixin操作之后，Sub.superOptions存储的是之前旧的Vue.options
+    // superOptions用于判断Vue.options被完全赋值的情况
     Sub.superOptions = Super.options
     Sub.extendOptions = extendOptions
+    // sealedOptions用于判断当前组件options的属性是否有被修改，因此要重新复制一份，跟原来的Sub.options隔离开
     Sub.sealedOptions = extend({}, Sub.options)
 
     // cache constructor

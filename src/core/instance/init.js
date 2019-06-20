@@ -98,28 +98,110 @@ export function initInternalComponent (vm: Component, options: InternalComponent
 }
 
 /**
+  获取构造函数的options选项
+  <div id="mount-point"></div>
+
+  var Profile = Vue.extend({
+    template: '<p>{{firstName}} {{lastName}} aka {{alias}}</p>',
+    data: function () {
+      return {
+        firstName: 'Walter',
+        lastName: 'White',
+        alias: 'Heisenberg'
+      }
+    }
+  })
+
+  new Profile().$mount('#mount-point')
+
  TODO 当使用Vue.extend创造一个子类并使用子类创造实例时，传入本函数的vm.constructor就不是Vue构造函数，而是子类Sub
- const Sub = Vue.extend()
- const s = new Sub()
+ * @param Ctor 即/src/core/global-api/extend.js中的Sub，上例中的Profile
+ * @returns {*}
  */
-// 获取构造函数的options选项
 export function resolveConstructorOptions (Ctor: Class<Component>) {
   let options = Ctor.options
-  // super与Vue.extend有关，是子类才有的属性
+  // Ctor.super即Vue
+  // 有super属性，说明Ctor是通过Vue.extend()方法创建的子类
   if (Ctor.super) {
+    // 可能存在Profile2 = Profile.extend({})的情况，因此递归调用获取父级options
     const superOptions = resolveConstructorOptions(Ctor.super)
     const cachedSuperOptions = Ctor.superOptions
+    /**
+     * 假设在Vue.extend()之后，通过Vue.mixin重新赋值了Vue.options
+     * 这里需要同步最新的options
+
+      var Profile = Vue.extend({
+        template: '<p>{{firstName}} {{lastName}} aka {{alias}}</p>',
+      });
+
+      Vue.mixin({
+        data () {
+          return {
+            firstName: 'Walter',
+            lastName: 'White',
+            alias: 'Heisenberg'
+          }
+        }
+      });
+
+      new Profile().$mount('#app');
+     */
+    // 通过Ctor.super引用查找的最新父级options !== Vue.extend()时记录的父级options，则需要同步最新的父级options
     if (superOptions !== cachedSuperOptions) {
       // super option changed,
       // need to resolve new options.
       Ctor.superOptions = superOptions
       // check if there are any late-modified/attached options (#4976)
+      /**
+       * 检查对option选项是否有任何的后期修改、附加新属性
+       * 如果有，则合并到option中，而不是遗漏掉
+       * https://github.com/vuejs/vue/issues/4976
+
+       const Test = Vue.extend({})
+
+       // Inject options later
+       // vue-loader and vue-hot-reload-api are doing like this
+       Test.options.computed = { $style: () => 123 }
+       Test.options.beforeCreate = [() => { console.log('Should be printed') }]
+
+       // Update super constructor's options
+       Vue.mixin({})
+
+       // mount the component
+       const vm = new Test({
+        template: '<div>{{ $style }}</div>'
+       }).$mount()
+
+       expect(Test.options.computed.$style()).toBe(123)
+       */
       const modifiedOptions = resolveModifiedOptions(Ctor)
       // update base extend options
+      // 将修改的属性集合，同步到Vue.extend(options)的options中
       if (modifiedOptions) {
         extend(Ctor.extendOptions, modifiedOptions)
       }
+      // 将最新的Vue.extend(options)中的options，合并到父级options中，并作为子类的options
       options = Ctor.options = mergeOptions(superOptions, Ctor.extendOptions)
+      //
+      /**
+       * 如果指定了当前组件的名称，则在子组件中也申明一份同样的组件，方便自引用
+       * TODO 下面的例子不是很具有实战意义，到时候去看看Element ui、iview之类的框架如何使用
+       * https://segmentfault.com/a/1190000010540748
+        const Test = Vue.extend({
+          name: 'z',
+          template: '<div>你的名字：{{ firstName }}</div>',
+          data () {
+            return {
+              firstName: 'Walter'
+            }
+          }
+        })
+
+        // mount the component
+        const vm = new Test({
+          template: '<div>将自身作为子组件，方便渲染：<test></test></div>'
+        }).$mount('#app')
+       */
       if (options.name) {
         options.components[options.name] = Ctor
       }
@@ -128,6 +210,7 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
   return options
 }
 
+// 返回一个对象，包含修改的属性集合
 function resolveModifiedOptions (Ctor: Class<Component>): ?Object {
   let modified
   const latest = Ctor.options
