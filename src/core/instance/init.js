@@ -157,22 +157,22 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
        * 如果有，则合并到option中，而不是遗漏掉
        * https://github.com/vuejs/vue/issues/4976
 
-       const Test = Vue.extend({})
+	       const Test = Vue.extend({})
 
-       // Inject options later
-       // vue-loader and vue-hot-reload-api are doing like this
-       Test.options.computed = { $style: () => 123 }
-       Test.options.beforeCreate = [() => { console.log('Should be printed') }]
+	       // Inject options later
+	       // vue-loader and vue-hot-reload-api are doing like this
+	       Test.options.computed = { $style: () => 123 }
+	       Test.options.beforeCreate = [() => { console.log('Should be printed') }]
 
-       // Update super constructor's options
-       Vue.mixin({})
+	       // Update super constructor's options
+	       Vue.mixin({})
 
-       // mount the component
-       const vm = new Test({
-        template: '<div>{{ $style }}</div>'
-       }).$mount()
+	       // mount the component
+	       const vm = new Test({
+	        template: '<div>{{ $style }}</div>'
+	       }).$mount()
 
-       expect(Test.options.computed.$style()).toBe(123)
+	       expect(Test.options.computed.$style()).toBe(123)
        */
       const modifiedOptions = resolveModifiedOptions(Ctor)
       // update base extend options
@@ -187,20 +187,20 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
        * 如果指定了当前组件的名称，则在子组件中也申明一份同样的组件，方便自引用
        * TODO 下面的例子不是很具有实战意义，到时候去看看Element ui、iview之类的框架如何使用
        * https://segmentfault.com/a/1190000010540748
-        const Test = Vue.extend({
-          name: 'z',
-          template: '<div>你的名字：{{ firstName }}</div>',
-          data () {
-            return {
-              firstName: 'Walter'
-            }
-          }
-        })
+	        const Test = Vue.extend({
+	          name: 'z',
+	          template: '<div>你的名字：{{ firstName }}</div>',
+	          data () {
+	            return {
+	              firstName: 'Walter'
+	            }
+	          }
+	        })
 
-        // mount the component
-        const vm = new Test({
-          template: '<div>将自身作为子组件，方便渲染：<test></test></div>'
-        }).$mount('#app')
+	        // mount the component
+	        const vm = new Test({
+	          template: '<div>将自身作为子组件，方便渲染：<test></test></div>'
+	        }).$mount('#app')
        */
       if (options.name) {
         options.components[options.name] = Ctor
@@ -210,7 +210,11 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
   return options
 }
 
-// 返回一个对象，包含修改的属性集合
+/**
+ * 将当前组件的options对象，与当前组件在extend时冻结的options对比，返回修改过的属性集合对象
+ * @param Ctor
+ * @returns {*}
+ */
 function resolveModifiedOptions (Ctor: Class<Component>): ?Object {
   let modified
   const latest = Ctor.options

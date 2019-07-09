@@ -45,9 +45,11 @@ export function isObject (obj: mixed): boolean %checks {
 
 /**
  * Get the raw type string of a value, e.g., [object Object].
+ * 获取值的原始类型字符串，等同于[object Object]
  */
 const _toString = Object.prototype.toString
 
+// 得到值的原始类型，即[object Object]中的Object
 export function toRawType (value: any): string {
   return _toString.call(value).slice(8, -1)
 }
@@ -55,8 +57,11 @@ export function toRawType (value: any): string {
 /**
  * Strict object type check. Only returns true
  * for plain JavaScript objects.
+ * 严格对象类型检测，只有是纯对象{}时，才会返回true。诸如[]、正则表达式都是返回false
+ *
+ * 这里要调用Object.prototype.toString才会返回[object ***]，不能用obj.toString()
+ * 因为toString()会被目标对象obj重写，例如([]).toString()返回的是空字符串，
  */
-// TODO 什么是plainObject？
 export function isPlainObject (obj: any): boolean {
   return _toString.call(obj) === '[object Object]'
 }

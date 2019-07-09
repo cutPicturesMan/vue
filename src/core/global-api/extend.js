@@ -34,12 +34,7 @@ export function initExtend (Vue: GlobalAPI) {
       return cachedCtors[SuperId]
     }
 
-    /**
-     const Test = Vue.extend({ name: 'z' })
-     const Test2 = Test.extend({})
-
-     Test.extend({})时会使用到父级options的name
-     */
+		// 未指定name时，使用父级的name
     const name = extendOptions.name || Super.options.name
     if (process.env.NODE_ENV !== 'production' && name) {
       // 校验组件名称是否合法（name会直接当成组件名称来使用）
@@ -49,6 +44,8 @@ export function initExtend (Vue: GlobalAPI) {
     const Sub = function VueComponent (options) {
       this._init(options)
     }
+    // TODO 红宝书第六章类的继承
+    // TODO 为什么要这样继承？
     Sub.prototype = Object.create(Super.prototype)
     Sub.prototype.constructor = Sub
     Sub.cid = cid++
@@ -62,6 +59,13 @@ export function initExtend (Vue: GlobalAPI) {
     // For props and computed properties, we define the proxy getters on
     // the Vue instances at extension time, on the extended prototype. This
     // avoids Object.defineProperty calls for each instance created.
+		// 对于在extend时定义的props、computed属性，我们在扩展原型prototype上定义Vue实例上的代理getter
+		// 这样可以避免每次实例创建时，调用Object.defineProperty
+		// Q 这里的props是Sub.options和Super.options合并的，如果都定义在Super.prototype上，那么岂不是等于是Super也拥有了Sub的props？
+		// A 由于上面prototype赋值时已经用Object.create切断了与Super之间的联系，因此不会影响到Super
+
+    // TODO 为什么定义在prototype上的属性，每次实例化时可以避免调用Object.defineProperty重复声明？
+    // props的值，从父类（Sub.prototype）的_props取
     if (Sub.options.props) {
       initProps(Sub)
     }
@@ -76,10 +80,41 @@ export function initExtend (Vue: GlobalAPI) {
 
     // create asset registers, so extended classes
     // can have their private assets too.
+		// 创建资源注册器，这样通过extend创建的类也能够拥有自己的私有资源
+    // TODO 验证以下2个问题
+    // Q 这里如果调用Sub.component()来声明组件的话，会作用到全局Vue上？？？
+    // A 实测每个extend创建出来的类，都拥有自己的Sub.component、Sub.directive、Sub.filter，并不会注册到父类上，怎么切断的联系？
+    // Q 这里为什么不直接initAssetRegisters(Sub)?
+    // A 实测可以替换成initAssetRegisters(Sub)
     ASSET_TYPES.forEach(function (type) {
       Sub[type] = Super[type]
     })
+    /**
+     TODO【bug】在extend后调用Vue.mixin({})，导致自定义组件<bbb>找不到
+     const Test = Vue.extend({
+      template: '<div>你的名字：{{ firstName }}</div>',
+      data: function () {
+        return {
+          firstName: 'Walter',
+        }
+      }
+    })
+
+     Test.component('bbb', {
+      template: '<strong>bbb</strong>',
+    });
+
+     // Update super constructor's options
+     Vue.mixin({})
+
+     // mount the component
+     const vm = new Test({
+      template: '<div>{{ firstName }}<bbb></bbb></div>'
+    }).$mount('#app')
+     */
+
     // enable recursive self-lookup
+    // 允许在本组件中引用自身
     if (name) {
       Sub.options.components[name] = Sub
     }
