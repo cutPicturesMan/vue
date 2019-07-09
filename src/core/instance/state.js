@@ -239,6 +239,7 @@ export function defineComputed (
   key: string,
   userDef: Object | Function
 ) {
+  // 是否应该进行缓存。不是服务端渲染的话，应该缓存
   const shouldCache = !isServerRendering()
   if (typeof userDef === 'function') {
     sharedPropertyDefinition.get = shouldCache

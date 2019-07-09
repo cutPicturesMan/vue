@@ -36,6 +36,9 @@ if (inBrowser) {
 
 // this needs to be lazy-evaled because vue may be required before
 // vue-server-renderer can set VUE_ENV
+// 返回一个函数，判断是否是服务端渲染
+// 这里不能直接进行判断，因为在服务端设置VUE_ENV为server标识前，本js可能就已经被加载了，造成误判断
+// TODO 这里等到服务端渲染再看
 let _isServer
 export const isServerRendering = () => {
   if (_isServer === undefined) {
