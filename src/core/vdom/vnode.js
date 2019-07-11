@@ -92,7 +92,7 @@ export default class VNode {
 }
 
 // 创建空vnode节点
-// TODO 这个节点渲染出来之后是空注释？<!-- -->
+// TODO 这个节点渲染出来之后是注释？<!-- xxx -->
 export const createEmptyVNode = (text: string = '') => {
   const node = new VNode()
   node.text = text
@@ -105,13 +105,13 @@ export function createTextVNode (val: string | number) {
   return new VNode(undefined, undefined, undefined, String(val))
 }
 
-// 优化浅拷贝
-// 主要用于静态节点和slot节点，因为他们可能多次渲染之间被重用
-// 复制他们可以避免依赖于VNode.elm的DOM操作产生错误
 // optimized shallow clone
 // used for static nodes and slot nodes because they may be reused across
 // multiple renders, cloning them avoids errors when DOM manipulations rely
 // on their elm reference.
+// 优化浅拷贝
+// 主要用于静态节点和slot节点，因为他们可能多次渲染之间被重用
+// 复制他们可以避免依赖于VNode.elm的DOM操作产生错误
 export function cloneVNode (vnode: VNode): VNode {
   const cloned = new VNode(
     vnode.tag,

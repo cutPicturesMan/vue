@@ -35,7 +35,7 @@ const ALWAYS_NORMALIZE = 2
              data: {
                  class: 'demo'
              }
-             text: 'hello,VNode'
+             children: 'hello,VNode'
          }
      ]
  }
@@ -50,9 +50,10 @@ export function createElement (
   normalizationType: any,
   alwaysNormalize: boolean
 ): VNode | Array<VNode> {
-  // 这里实际上是判断当前data（Object）类型，是否属于children参数的合法类型（String | Array）
-  // 如果是，则表示没有data属性需要赋值，直接省略data，所有参数前移一位
-  // TODO 验证：这里之所以使用isPrimitive而不是判断String的原因，是因为children内部会将基本类型转为String
+  // 兼容data不传值的情况
+  // 当data不传值时，原本data位置的值（Object类型）变成了children的值（Array | String），其后的所有参数前移一位
+
+  // 虽然文档上说children值的类型其中之一是String，但实际上支持所有基本类型，因为基本类型都能通过String()函数转化为String类型
   // https://cn.vuejs.org/v2/guide/render-function.html#createElement-参数
   if (Array.isArray(data) || isPrimitive(data)) {
     normalizationType = children
@@ -74,7 +75,7 @@ export function _createElement (
   children?: any,
   normalizationType?: number
 ): VNode | Array<VNode> {
-  // 如果data已经observer了，则创建空节点
+  // 如果data已经observer了，则创建并返回空节点的vnode
   if (isDef(data) && isDef((data: any).__ob__)) {
     process.env.NODE_ENV !== 'production' && warn(
       `Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` +
@@ -83,20 +84,45 @@ export function _createElement (
     )
     return createEmptyVNode()
   }
+
   // object syntax in v-bind
-  // 通过render函数创建组件，data.is表示组件名称
+  // 如果是通过render函数创建的实例，需要特殊处理下data参数中的is
+  // https://github.com/vuejs/vue/issues/5881
+  /**
+   TODO 通过options创建的vue，其options.data.is在哪里处理掉的？为何到这里没有了？
+
+   new Vue({
+    template: '<strong>{{is}}</strong>',
+    data: {
+      is: 'ccc'
+    }
+  }).$mount('#app')
+
+   new Vue({
+    render(h){
+      return h(
+        'div', {
+          is: 'abc'
+        })
+    }
+  }).$mount('#app')
+   */
   if (isDef(data) && isDef(data.is)) {
     tag = data.is
   }
-  // 组件名称不存在，则创建空节点
+  // 标签名称不存在，则创建空节点
+  // 对于组件来说，即is属性设为false（<component :is="false"></component>）
   if (!tag) {
     // in case of component :is set to falsy value
     return createEmptyVNode()
   }
   // warn against non-primitive key
+  // 对于不是基本类型的key值，进行提示
+  // TODO 文档上说key值限制为String/Number，这里为何却是检测范围更大的基本类型？
   if (process.env.NODE_ENV !== 'production' &&
     isDef(data) && isDef(data.key) && !isPrimitive(data.key)
   ) {
+    // 这个if在非weex环境都会进入
     if (!__WEEX__ || !('@binding' in data.key)) {
       warn(
         'Avoid using non-primitive value as key, ' +

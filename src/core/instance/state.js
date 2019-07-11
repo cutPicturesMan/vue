@@ -201,6 +201,9 @@ function initComputed (vm: Component, computed: Object) {
 
   for (const key in computed) {
     const userDef = computed[key]
+    // 定义computed有2种方式：
+    // 1、函数，会被当做getter
+    // 2、含有get、set属性的对象
     const getter = typeof userDef === 'function' ? userDef : userDef.get
     if (process.env.NODE_ENV !== 'production' && getter == null) {
       warn(
@@ -209,8 +212,11 @@ function initComputed (vm: Component, computed: Object) {
       )
     }
 
+    // TODO 为什么非服务端才创建watcher
     if (!isSSR) {
       // create internal watcher for the computed property.
+      // 为计算属性创建内部watcher
+      // TODO 哪些地方需要调用Watcher？分析下其第二个参数
       watchers[key] = new Watcher(
         vm,
         getter || noop,
@@ -222,18 +228,23 @@ function initComputed (vm: Component, computed: Object) {
     // component-defined computed properties are already defined on the
     // component prototype. We only need to define computed properties defined
     // at instantiation here.
+    // 组件定义的计算属性由组件自己处理（定义在组件的prototype上）
+    // 我们只需要在这里处理new Vue()时的计算属性即可
     if (!(key in vm)) {
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
+      // 非生产环境下，如果计算属性名称与data、props重复，则进行提示
       if (key in vm.$data) {
         warn(`The computed property "${key}" is already defined in data.`, vm)
       } else if (vm.$options.props && key in vm.$options.props) {
+        // TODO 这里的判断方式为何跟上面的vm.$data不同？
         warn(`The computed property "${key}" is already defined as a prop.`, vm)
       }
     }
   }
 }
 
+// TODO 把Observer看完后再回头看这块
 export function defineComputed (
   target: any,
   key: string,
