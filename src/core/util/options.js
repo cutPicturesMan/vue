@@ -550,11 +550,18 @@ export function mergeOptions (
   return options
 }
 
+/*
+ * Resolve an asset.
+ * This function is used because child instances need access
+ * to assets defined in its ancestor chain.
+ */
 /**
- 先查找options.components本身上的组件声明，即局部声明的组件
- 没有找到的话，在通过原型链查找全局声明的组件
+ 先查找局部的资源（components/directives/filters）
 
- * 局部声明组件
+ 先查找options.components本身上的组件声明，即局部声明的组件
+ 没有找到的话，再通过原型链查找全局声明的组件
+
+ 1、局部声明组件
  <template>
    <div>
     <my-component></my-component>
@@ -562,22 +569,18 @@ export function mergeOptions (
  </template>
 
  <script>
-   import myComponent from './myComponent.vue'
+ import myComponent from './myComponent.vue'
 
-   export default {
-    components: {
-      myComponent
-    }
-  }
+ export default {
+   components: {
+     myComponent
+   }
+ }
  </script>
 
- * 全局声明的组件
- * 当全局声明的组件名称与局部声明的完全一样时，如果先查找相同的组件名称，那么会找到全局组件上，局部组件完全不会初始化
+ 2、全局声明的组件
+   当全局声明的组件名称与局部声明的完全一样时，在没找到局部my-component的情况下，不转而查找其驼峰式myComponent，而是先查找相同的组件名称时，会找到全局组件上，导致局部组件完全不会初始化
  Vue.component('my-component', {...})
-
- * Resolve an asset.
- * This function is used because child instances need access
- * to assets defined in its ancestor chain.
  */
 export function resolveAsset (
   options: Object,

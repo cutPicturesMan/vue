@@ -131,8 +131,21 @@ export function _createElement (
       )
     }
   }
+
   // support single function children as default scoped slot
-  // 如果子元素只有一个函数，则作为默认的slot
+  /**
+   * 如果children只包含一个函数，则作为默认的slot
+   * https://cn.vuejs.org/v2/guide/render-function.html#插槽
+   props: ['message'],
+   render: function (createElement) {
+     // `<div><slot :text="message"></slot></div>`
+     return createElement('div', [
+       this.$scopedSlots.default({
+         text: this.message
+       })
+     ])
+   }
+   */
   if (Array.isArray(children) &&
     typeof children[0] === 'function'
   ) {
@@ -144,7 +157,7 @@ export function _createElement (
   if (normalizationType === ALWAYS_NORMALIZE) {
     children = normalizeChildren(children)
   } else if (normalizationType === SIMPLE_NORMALIZE) {
-    // normalizationType为1时，将二维children打平成一维数组
+    // 内部调用render函数时，将二维children（可以确保是二维数组）打平成一维数组
     children = simpleNormalizeChildren(children)
   }
   let vnode, ns
@@ -159,13 +172,38 @@ export function _createElement (
         undefined, undefined, context
       )
     } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
-      // 在options.components以及全局组件列表中，查找对应的自定义组件名，如果找到了则实例化
       // component
+      /**
+       在options.components以及全局组件列表中，查找对应的自定义组件名，如果找到了则实例化
+       要避免对处于<pre>块或者v-pre块中的组件进行解析，处在pre中的元素，data.pre为true
+       可将判断条件(!data || !data.pre)转为!(data && data.pre)，更好理解
+
+       避免以下2种情况的解析
+       1、
+         Vue.component('vtest', { template: ` <div>Hello World</div>` })
+         new Vue({
+           template: '<div v-pre><vtest></vtest></div>',
+         }).$mount('#app')
+
+       2、
+         Vue.component('vtest', { template: ` <div>Hello World</div>` })
+         new Vue({
+           render (h) {
+             return h('vtest', {
+               pre: true
+             })
+           }
+         }).$mount('#app')
+       */
+
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
       // unknown or unlisted namespaced elements
       // check at runtime because it may get assigned a namespace when its
       // parent normalizes children
+      // 未知的或未列出命名空间的标签
+      // 在运行时检查命名空间，因为当父级规范化子级的时候，有可能赋值命名空间
+      // TODO 什么是命名空间？runtime为什么会有可能赋值命名空间？
       vnode = new VNode(
         tag, data, children,
         undefined, undefined, context
