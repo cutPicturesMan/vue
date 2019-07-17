@@ -211,6 +211,19 @@ export function _createElement (
     }
   } else {
     // direct component options / constructor
+    /**
+     tag参数有3种情况：
+      1、String，上面处理了
+      2、Object，即组件的options
+      3、Vue.extend()返回的构造器
+          new Vue({
+            render: function(h){
+              return h(Vue.extend({
+                template: '<div>test</div>'
+              }))
+            }
+          }).$mount('#app');
+     */
     vnode = createComponent(tag, data, context, children)
   }
   if (Array.isArray(vnode)) {

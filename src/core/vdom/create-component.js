@@ -98,6 +98,9 @@ const componentVNodeHooks = {
 
 const hooksToMerge = Object.keys(componentVNodeHooks)
 
+/**
+ 创建组件，参数Ctor最终将被Vue.extend()处理
+ */
 export function createComponent (
   Ctor: Class<Component> | Function | Object | void,
   data: ?VNodeData,
@@ -112,12 +115,28 @@ export function createComponent (
   const baseCtor = context.$options._base
 
   // plain options object: turn it into a constructor
+  // Ctor是Object类型，即options，则使用Vue.extend()转化为构造函数
+  // 剩余的步骤处理构造函数即可
   if (isObject(Ctor)) {
     Ctor = baseCtor.extend(Ctor)
   }
 
   // if at this stage it's not a constructor or an async component factory,
   // reject.
+  /**
+   到了这个阶段，Ctor必须是构造函数 或 Promise版的工厂函数(函数内部resolve了才会创建组件)。Promise函数使用示例如下
+
+   https://cn.vuejs.org/v2/guide/components-dynamic-async.html#%E5%BC%82%E6%AD%A5%E7%BB%84%E4%BB%B6
+
+   Vue.component('async-example', function (resolve, reject) {
+      setTimeout(function () {
+        // 向 `resolve` 回调传递组件定义
+        resolve({
+          template: '<div>I am async!</div>'
+        })
+      }, 1000)
+    })
+   */
   if (typeof Ctor !== 'function') {
     if (process.env.NODE_ENV !== 'production') {
       warn(`Invalid Component definition: ${String(Ctor)}`, context)
@@ -127,6 +146,7 @@ export function createComponent (
 
   // async component
   let asyncFactory
+  // 通过Vue.extend()创建的函数含有cid属性。没有cid属性，则不是Vue.extend()创建的，即异步函数
   if (isUndef(Ctor.cid)) {
     asyncFactory = Ctor
     Ctor = resolveAsyncComponent(asyncFactory, baseCtor)
