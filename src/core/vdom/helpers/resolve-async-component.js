@@ -104,6 +104,66 @@ export function resolveAsyncComponent (
 
     const res = factory(resolve, reject)
 
+
+    /**
+     同步式声明组件的2种方式
+     1、全局声明
+       Vue.component('my-component-name', {
+          template: '<div>hi</div>'
+       })
+
+     2、局部声明
+     new Vue({
+      template: '<div><test></test></div>',
+      components: {
+        test: {
+          template: '<div>hi</div>'
+       }
+    }).$mount()
+
+     异步式声明组件的2种方式
+     1、全局声明
+      Vue.component('my-component-name', function (resolve, reject) {
+        setTimeout(function () {
+          // 向 `resolve` 回调传递组件定义
+          resolve({
+            template: '<div>hi</div>'
+          })
+        }, 1000)
+      }))
+
+     2、局部声明
+     new Vue({
+      template: '<div><test></test></div>',
+      components: {
+        test: (resolve) => {
+          setTimeout(() => {
+            resolve({
+              template: '<div>hi</div>'
+            })
+          }, 0)
+        }
+      }
+    }).$mount()
+     */
+
+
+    /**
+     new Vue({
+        template: `<div><test/></div>`,
+        components: {
+            test: () => ({
+                component: new Promise(resolve => {
+                    setTimeout(() => {
+                        resolve({ template: '<div>hi</div>' })
+                    }, 50)
+                }),
+                loading: { template: `<div>loading</div>` },
+                delay: 0
+            })
+        }
+     }).$mount('#app')
+     */
     if (isObject(res)) {
       if (isPromise(res)) {
         // () => Promise
