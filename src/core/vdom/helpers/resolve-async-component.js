@@ -149,28 +149,51 @@ export function resolveAsyncComponent (
 
 
     /**
-     new Vue({
-        template: `<div><test/></div>`,
-        components: {
-            test: () => ({
-                component: new Promise(resolve => {
-                    setTimeout(() => {
-                        resolve({ template: '<div>hi</div>' })
-                    }, 50)
-                }),
-                loading: { template: `<div>loading</div>` },
-                delay: 0
-            })
-        }
-     }).$mount('#app')
+     处理工厂函数有返回值的情况
      */
     if (isObject(res)) {
+      /**
+       1、情况一：工厂函数直接返回一个promise
+       适用于直接请求，请求成功则展示，不成功不展示，即不需要进行异常流处理的情况
+       new Vue({
+          template: '<div><test></test></div>',
+          components: {
+            test: () => {
+              return new Promise(resolve => {
+                setTimeout(() => {
+                  resolve({
+                    template: '<div>hi</div>'
+                  })
+                }, 0)
+              })
+            }
+          }
+        }).$mount()
+       */
       if (isPromise(res)) {
         // () => Promise
         if (isUndef(factory.resolved)) {
           res.then(resolve, reject)
         }
       } else if (isPromise(res.component)) {
+        /**
+         情况二：工厂函数返回对象，其中的component属性为Promise函数
+         适用于发起请求前进行loading提示、请求失败进行错误提示等的情况
+         new Vue({
+            template: `<div><test/></div>`,
+            components: {
+                test: () => ({
+                    component: new Promise(resolve => {
+                        setTimeout(() => {
+                            resolve({ template: '<div>hi</div>' })
+                        }, 50)
+                    }),
+                    loading: { template: `<div>loading</div>` },
+                    delay: 0
+                })
+            }
+         }).$mount('#app')
+         */
         res.component.then(resolve, reject)
 
         if (isDef(res.error)) {
