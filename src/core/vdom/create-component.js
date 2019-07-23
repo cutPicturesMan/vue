@@ -167,10 +167,12 @@ export function createComponent (
     }
   }
 
+  // TODO 下面的都没看了
   data = data || {}
 
   // resolve constructor options in case global mixins are applied after
   // component constructor creation
+  // 解析构造函数选项，用于Vue.mixins在组件构造函数创建之后调用的情况
   resolveConstructorOptions(Ctor)
 
   // transform component v-model data into props & events
@@ -270,13 +272,16 @@ function mergeHook (f1: any, f2: any): Function {
 
 // transform component v-model info (value and callback) into
 // prop and event handler respectively.
+// 将组件的options.model分别转换为prop、event
 function transformModel (options, data: any) {
   const prop = (options.model && options.model.prop) || 'value'
   const event = (options.model && options.model.event) || 'input'
+  // TODO https://github.com/vuejs/vue/issues/9330
   ;(data.attrs || (data.attrs = {}))[prop] = data.model.value
   const on = data.on || (data.on = {})
   const existing = on[event]
   const callback = data.model.callback
+  // TODO https://github.com/vuejs/vue/issues/8436
   if (isDef(existing)) {
     if (
       Array.isArray(existing)

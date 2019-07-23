@@ -15,6 +15,8 @@ import {
 import { createEmptyVNode } from 'core/vdom/vnode'
 import { currentRenderingInstance } from 'core/instance/render'
 
+// TODO webpack的模块加载方式
+// https://segmentfault.com/a/1190000010955254
 function ensureCtor (comp: any, base) {
   if (
     comp.__esModule ||

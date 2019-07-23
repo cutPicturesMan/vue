@@ -740,6 +740,7 @@ export function createPatchFunction (backend) {
           }
           // either not server-rendered, or hydration failed.
           // create an empty node and replace it
+          // 不是服务器端渲染，或hydration失败，创建空节点并替换oldVnode
           oldVnode = emptyNodeAt(oldVnode)
         }
 
@@ -754,6 +755,9 @@ export function createPatchFunction (backend) {
           // extremely rare edge case: do not insert if old element is in a
           // leaving transition. Only happens when combining transition +
           // keep-alive + HOCs. (#4590)
+          // 极其罕见的边缘情况：如果oldElm处于leaving的transition中，不insert
+          // 只会发生在结合了transition + keep-alive的高阶组件上
+          // TODO https://github.com/vuejs/vue/issues/4590
           oldElm._leaveCb ? null : parentElm,
           nodeOps.nextSibling(oldElm)
         )

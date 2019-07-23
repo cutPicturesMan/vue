@@ -226,6 +226,7 @@ export function _createElement (
      */
     vnode = createComponent(tag, data, context, children)
   }
+  // TODO https://github.com/vuejs/vue/issues/7292#issue-283588912
   if (Array.isArray(vnode)) {
     return vnode
   } else if (isDef(vnode)) {
