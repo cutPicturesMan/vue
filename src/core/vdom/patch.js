@@ -104,9 +104,12 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 判断未知的节点
   function isUnknownElement (vnode, inVPre) {
     return (
+      // 排除<pre>标签
       !inVPre &&
+      // TODO 排除命名空间？
       !vnode.ns &&
       !(
         config.ignoredElements.length &&
@@ -593,12 +596,16 @@ export function createPatchFunction (backend) {
   const isRenderedModule = makeMap('attrs,class,staticClass,staticStyle,key')
 
   // Note: this is a browser-only function so we can assume elms are DOM nodes.
+  // 这是一个只在浏览器端调用的函数，所以我们可以假定elms均为dom节点
+  // TODO 传入patch函数的第一个参数，有些地方为vm._vnode，这个是虚拟dom
   function hydrate (elm, vnode, insertedVnodeQueue, inVPre) {
     let i
     const { tag, data, children } = vnode
     inVPre = inVPre || (data && data.pre)
     vnode.elm = elm
 
+    // 是注释节点 && 是异步组件
+    // TODO 分析create-element.js中的createEmptyVNode函数
     if (isTrue(vnode.isComment) && isDef(vnode.asyncFactory)) {
       vnode.isAsyncPlaceholder = true
       return true
@@ -686,13 +693,19 @@ export function createPatchFunction (backend) {
     return true
   }
 
+  // 判断dom节点与虚拟dom节点是否匹配
   function assertNodeMatch (node, vnode, inVPre) {
+    // 元素节点包含：1、html节点；2、vue组件
+    // 由于通过dom节点（已经渲染成div等的标签）无法判断该节点是否是vue组件，因此要通过虚拟dom判断
     if (isDef(vnode.tag)) {
+      // vue组件 || 虚拟dom标签名与dom相等的标签（警告并排除未知标签）
       return vnode.tag.indexOf('vue-component') === 0 || (
         !isUnknownElement(vnode, inVPre) &&
         vnode.tag.toLowerCase() === (node.tagName && node.tagName.toLowerCase())
       )
     } else {
+      // 浏览器不会对文本节点(3)和注释节点(8)作出修改，直接判断nodeType即可判断是否匹配
+      // https://github.com/vuejs/vue/issues/4560
       return node.nodeType === (vnode.isComment ? 8 : 3)
     }
   }
@@ -711,6 +724,7 @@ export function createPatchFunction (backend) {
       isInitialPatch = true
       createElm(vnode, insertedVnodeQueue)
     } else {
+      // 是否是真实dom节点
       const isRealElement = isDef(oldVnode.nodeType)
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
@@ -720,15 +734,20 @@ export function createPatchFunction (backend) {
           // mounting to a real element
           // check if this is server-rendered content and if we can perform
           // a successful hydration.
+          // oldVnode是html元素节点 && oldVnode节点是服务端渲染，设置激活标识为true
           if (oldVnode.nodeType === 1 && oldVnode.hasAttribute(SSR_ATTR)) {
             oldVnode.removeAttribute(SSR_ATTR)
             hydrating = true
           }
+          // 客户端拿到服务端渲染的静态html节点，将其激活成Vue管理的动态DOM
+          // https://ssr.vuejs.org/zh/guide/hydration.html
           if (isTrue(hydrating)) {
             if (hydrate(oldVnode, vnode, insertedVnodeQueue)) {
               invokeInsertHook(vnode, insertedVnodeQueue, true)
               return oldVnode
             } else if (process.env.NODE_ENV !== 'production') {
+              // 由于浏览器会自动补全html节点，因此会导致浏览器端的虚拟dom节点与服务端渲染的内容不一致
+              // https://ssr.vuejs.org/zh/guide/hydration.html#一些需要注意的坑
               warn(
                 'The client-side rendered virtual DOM tree is not matching ' +
                 'server-rendered content. This is likely caused by incorrect ' +

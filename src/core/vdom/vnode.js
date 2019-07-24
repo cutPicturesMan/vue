@@ -79,8 +79,10 @@ export default class VNode {
     this.isCloned = false
     // 是否有v-once指令
     this.isOnce = false
+    // 异步组件
     this.asyncFactory = asyncFactory
     this.asyncMeta = undefined
+    // 异步组件占位符
     this.isAsyncPlaceholder = false
   }
 

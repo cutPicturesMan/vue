@@ -35,6 +35,16 @@ describe('vdom patch: hydration', () => {
       root.appendChild(div)
       return root
     }
+
+    /**
+     <div data-server-rendered="true">
+       <span></span>
+       <div>
+         <span>hi</span>
+         <span>ho</span>
+       </div>
+     </div>
+     */
     const node0 = createServerRenderedDOM()
     const vnode1 = new VNode('div', {}, [
       new VNode('span', {}),
@@ -82,6 +92,14 @@ describe('vdom patch: hydration', () => {
       root.appendChild(div)
       return root
     }
+    /**
+     <div data-server-rendered="true">
+       <span></span>
+       <div>
+         <span></span>
+       </div>
+     </div>
+     */
     const node0 = createServerRenderedDOM()
     const vnode1 = new VNode('div', {}, [
       new VNode('span', {}),
@@ -150,6 +168,7 @@ describe('vdom patch: hydration', () => {
     expect('not matching server-rendered content').toHaveBeenWarned()
   })
 
+  // TODO
   it('should warn failed hydration when component is not properly registered', () => {
     const dom = createMockSSRDOM('<div><foo></foo></div>')
 
@@ -161,6 +180,7 @@ describe('vdom patch: hydration', () => {
     expect('Unknown custom element: <foo>').toHaveBeenWarned()
   })
 
+  // TODO $mount()挂到服务端返回的html上是什么操作？？？这里如何比较dom与虚拟dom？
   it('should overwrite textNodes in the correct position but with mismatching text without warning', () => {
     const dom = createMockSSRDOM('<div><span>foo</span></div>')
 
