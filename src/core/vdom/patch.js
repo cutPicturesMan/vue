@@ -32,6 +32,7 @@ export const emptyNode = new VNode('', {}, [])
 
 const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
 
+// 判断两个虚拟节点是否相同
 function sameVnode (a, b) {
   return (
     a.key === b.key && (
@@ -73,6 +74,16 @@ export function createPatchFunction (backend) {
 
   const { modules, nodeOps } = backend
 
+  /**
+   将每个模块中分散的生命周期，合并到对应的生命周期中
+   {
+      create: [attrs.create, klass.create, ..., directive.create],
+      activate: [],
+      update: [],
+      remove: [],
+      destroy: []
+   }
+   */
   for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = []
     for (j = 0; j < modules.length; ++j) {
@@ -347,13 +358,17 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 调用销毁钩子函数
   function invokeDestroyHook (vnode) {
     let i, j
     const data = vnode.data
     if (isDef(data)) {
+      // 虚拟dom定义了生命周期函数 && 销毁函数，则执行
       if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode)
+      // 依次执行声明了destroy函数的模块
       for (i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i](vnode)
     }
+    // 依次销毁子节点
     if (isDef(i = vnode.children)) {
       for (j = 0; j < vnode.children.length; ++j) {
         invokeDestroyHook(vnode.children[j])
@@ -595,6 +610,7 @@ export function createPatchFunction (backend) {
   // deep updates (#7063).
   const isRenderedModule = makeMap('attrs,class,staticClass,staticStyle,key')
 
+  // 将dom转化成虚拟dom
   // Note: this is a browser-only function so we can assume elms are DOM nodes.
   // 这是一个只在浏览器端调用的函数，所以我们可以假定elms均为dom节点
   // TODO 传入patch函数的第一个参数，有些地方为vm._vnode，这个是虚拟dom
@@ -693,25 +709,39 @@ export function createPatchFunction (backend) {
     return true
   }
 
-  // 判断dom节点与虚拟dom节点是否匹配
+  // 判断元素节点、文本节点、注释节点的dom节点与其虚拟dom节点是否匹配
   function assertNodeMatch (node, vnode, inVPre) {
     // 元素节点包含：1、html节点；2、vue组件
     // 由于通过dom节点（已经渲染成div等的标签）无法判断该节点是否是vue组件，因此要通过虚拟dom判断
     if (isDef(vnode.tag)) {
-      // vue组件 || 虚拟dom标签名与dom相等的标签（警告并排除未知标签）
+      // vue组件 || 虚拟dom标签名与dom相等的标签（警告并排除未知标签），认为是相等的
+      // TODO 到这个阶段，组件都解析为vue-component开头的，未知组件没有找到options中的配置，就都没有解析？
       return vnode.tag.indexOf('vue-component') === 0 || (
         !isUnknownElement(vnode, inVPre) &&
         vnode.tag.toLowerCase() === (node.tagName && node.tagName.toLowerCase())
       )
     } else {
-      // 浏览器不会对文本节点(3)和注释节点(8)作出修改，直接判断nodeType即可判断是否匹配
+      /**
+       浏览器不会对文本节点(3)和注释节点(8)作出修改，直接判断nodeType即可判断是否匹配
+       这里不能判断节点的内容是否相等，_toString(vnode.text) === node.data
+
+       CR：Carriage Return，对应ASCII中转义字符\r，表示回车
+       LF：Linefeed，对应ASCII中转义字符\n，表示换行
+       CRLF：Carriage Return & Linefeed，\r\n，表示回车并换行
+
+       因为Windows操作系统采用两个字符来进行换行，即CRLF；
+       Unix/Linux/Mac OS X操作系统采用单个字符LF来进行换行；
+       */
       // https://github.com/vuejs/vue/issues/4560
       return node.nodeType === (vnode.isComment ? 8 : 3)
     }
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
+    // vnode不存在，则返回
     if (isUndef(vnode)) {
+      // oldVnode存在，vnode不存在的情况下，需要销毁oldVnode
+      // TODO 啥时候要销毁？
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
       return
     }
@@ -719,13 +749,16 @@ export function createPatchFunction (backend) {
     let isInitialPatch = false
     const insertedVnodeQueue = []
 
+    // vnode存在，oldVnode不存在
     if (isUndef(oldVnode)) {
       // empty mount (likely as component), create new root element
+      // 空挂载（可能作为组件），创建新的根节点
       isInitialPatch = true
       createElm(vnode, insertedVnodeQueue)
     } else {
-      // 是否是真实dom节点
+      // vnode、oldVnode均存在
       const isRealElement = isDef(oldVnode.nodeType)
+      // oldVnode不是真实dom && oldVnode与vnode相同
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, null, null, removeOnly)
@@ -739,14 +772,15 @@ export function createPatchFunction (backend) {
             oldVnode.removeAttribute(SSR_ATTR)
             hydrating = true
           }
-          // 客户端拿到服务端渲染的静态html节点，将其激活成Vue管理的动态DOM
+          // 是服务端渲染
           // https://ssr.vuejs.org/zh/guide/hydration.html
           if (isTrue(hydrating)) {
+            // dom与虚拟dom成功融合
             if (hydrate(oldVnode, vnode, insertedVnodeQueue)) {
               invokeInsertHook(vnode, insertedVnodeQueue, true)
               return oldVnode
             } else if (process.env.NODE_ENV !== 'production') {
-              // 由于浏览器会自动补全html节点，因此会导致浏览器端的虚拟dom节点与服务端渲染的内容不一致
+              // dom与虚拟dom节点不一致，融合失败（浏览器会自动补全html节点导致）
               // https://ssr.vuejs.org/zh/guide/hydration.html#一些需要注意的坑
               warn(
                 'The client-side rendered virtual DOM tree is not matching ' +
@@ -759,7 +793,7 @@ export function createPatchFunction (backend) {
           }
           // either not server-rendered, or hydration failed.
           // create an empty node and replace it
-          // 不是服务器端渲染，或hydration失败，创建空节点并替换oldVnode
+          // 不论是非服务器端渲染，还是dom与虚拟dom融合失败，都创建空节点并替换oldVnode
           oldVnode = emptyNodeAt(oldVnode)
         }
 

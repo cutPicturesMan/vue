@@ -47,7 +47,7 @@ export default class VNode {
     this.children = children
     // 文本内容
     this.text = text
-    // 当前虚拟节点对应的真实dom
+    // 当前虚拟节点对应的真实dom节点
     this.elm = elm
     // 名字空间
     this.ns = undefined
