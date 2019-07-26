@@ -45,6 +45,7 @@ const tag = prop('tagName')
 describe('vdom patch: children', () => {
   let vnode0
   beforeEach(() => {
+    // <p id="1">hello world</p>
     vnode0 = new VNode('p', { attrs: { id: '1' }}, [createTextVNode('hello world')])
     patch(null, vnode0)
   })
@@ -430,9 +431,11 @@ describe('vdom patch: children', () => {
   })
 
   it('should handle children with the same tag, same key, but one with data and one without data', () => {
+    // <div class="hi">one</div>
     const vnode1 = new VNode('div', {}, [
       new VNode('div', { class: 'hi' }, undefined, 'one')
     ])
+    // <div>four</div>
     const vnode2 = new VNode('div', {}, [
       new VNode('div', undefined, undefined, 'four')
     ])

@@ -39,6 +39,8 @@ function sameVnode (a, b) {
       (
         a.tag === b.tag &&
         a.isComment === b.isComment &&
+        // TODO 为何判断data是否定义，而不是data是否相等
+        // https://github.com/vuejs/vue/issues/3176
         isDef(a.data) === isDef(b.data) &&
         sameInputType(a, b)
       ) || (
@@ -50,6 +52,10 @@ function sameVnode (a, b) {
   )
 }
 
+// 判断是否是相同的输入框
+// 对于输入文本类的input框，认为他们都是相等的，避免切换显示时重新渲染导致输入的文本丢失
+// 对于其他input框，需要type相等
+// https://github.com/vuejs/vue/issues/6313
 function sameInputType (a, b) {
   if (a.tag !== 'input') return true
   let i
@@ -516,6 +522,7 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 对比相同的虚拟dom节点
   function patchVnode (
     oldVnode,
     vnode,
@@ -740,7 +747,7 @@ export function createPatchFunction (backend) {
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
     // vnode不存在，则返回
     if (isUndef(vnode)) {
-      // oldVnode存在，vnode不存在的情况下，需要销毁oldVnode
+      // oldVnode存在，vnode不存在的情况下，需要销毁旧节点oldVnode
       // TODO 啥时候要销毁？
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
       return
@@ -749,7 +756,7 @@ export function createPatchFunction (backend) {
     let isInitialPatch = false
     const insertedVnodeQueue = []
 
-    // vnode存在，oldVnode不存在
+    // vnode存在，oldVnode不存在，需要创建新节点
     if (isUndef(oldVnode)) {
       // empty mount (likely as component), create new root element
       // 空挂载（可能作为组件），创建新的根节点
@@ -758,11 +765,14 @@ export function createPatchFunction (backend) {
     } else {
       // vnode、oldVnode均存在
       const isRealElement = isDef(oldVnode.nodeType)
-      // oldVnode不是真实dom && oldVnode与vnode相同
+      // oldVnode不是真实dom && oldVnode与vnode是同一节点，需要比较新旧节点
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, null, null, removeOnly)
       } else {
+        // oldVnode是真实dom，有可能：
+        // 1、是服务器端返回的dom，需要尝试与虚拟dom进行融合并返回融合后的dom
+        // 2、是页面的dom，或者融合失败，设置为空节点
         if (isRealElement) {
           // mounting to a real element
           // check if this is server-rendered content and if we can perform
@@ -797,6 +807,9 @@ export function createPatchFunction (backend) {
           oldVnode = emptyNodeAt(oldVnode)
         }
 
+        // 处理以下2种情况
+        // 1、oldVnode是真实的页面dom（非服务端渲染），或hydration失败，此时oldVnode为空节点
+        // 2、oldVnode为虚拟dom、且oldVnode与vnode不是同一节点
         // replacing existing element
         const oldElm = oldVnode.elm
         const parentElm = nodeOps.parentNode(oldElm)
