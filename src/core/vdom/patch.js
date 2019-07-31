@@ -463,13 +463,13 @@ export function createPatchFunction (backend) {
         oldEndVnode = oldCh[--oldEndIdx]
         newEndVnode = newCh[--newEndIdx]
       } else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right
-        // 2.1 旧开始节点与新结束节点相同，将节点移动到新结束节点位置，并进行patch
+        // 2.1 旧开始节点与新结束节点相同，将旧节点右移到新结束节点位置，并进行patch
         patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue, newCh, newEndIdx)
         canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
         oldStartVnode = oldCh[++oldStartIdx]
         newEndVnode = newCh[--newEndIdx]
       } else if (sameVnode(oldEndVnode, newStartVnode)) { // Vnode moved left
-        // 2.2 旧结束节点与新开始节点相同，将节点移动到新开始节点位置，并进行patch
+        // 2.2 旧结束节点与新开始节点相同，将旧节点左移到新开始节点位置，并进行patch
         patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue, newCh, newStartIdx)
         canMove && nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
         oldEndVnode = oldCh[--oldEndIdx]
