@@ -18,14 +18,17 @@ export function createElementNS (namespace: string, tagName: string): Element {
   return document.createElementNS(namespaceMap[namespace], tagName)
 }
 
+// 创建文本节点
 export function createTextNode (text: string): Text {
   return document.createTextNode(text)
 }
 
+// 创建评论节点
 export function createComment (text: string): Comment {
   return document.createComment(text)
 }
 
+// 将newNode节点，从原来的地方，移动到parentNode内部的referenceNode节点之前
 export function insertBefore (parentNode: Node, newNode: Node, referenceNode: Node) {
   parentNode.insertBefore(newNode, referenceNode)
 }
@@ -42,6 +45,7 @@ export function parentNode (node: Node): ?Node {
   return node.parentNode
 }
 
+// node节点的下一个相邻节点，没有则返回null
 export function nextSibling (node: Node): ?Node {
   return node.nextSibling
 }

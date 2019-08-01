@@ -24,6 +24,10 @@ const SIMPLE_NORMALIZE = 1
 const ALWAYS_NORMALIZE = 2
 /**
  传入createElement的参数，实际上是vnode的主要属性。vnode结构如下：
+ TODO 下面的文字"hello,VNode"应该是一个单独的children，而不是text
+ <div class="test">
+  <span class="demo">hello,VNode</span>
+ </div>
  {
      tag: 'div'
      data: {
@@ -35,7 +39,7 @@ const ALWAYS_NORMALIZE = 2
              data: {
                  class: 'demo'
              }
-             children: 'hello,VNode'
+             text: 'hello,VNode'
          }
      ]
  }
