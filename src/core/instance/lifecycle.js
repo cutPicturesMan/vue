@@ -21,9 +21,11 @@ import {
 export let activeInstance: any = null
 export let isUpdatingChildComponent: boolean = false
 
+// 设置当前活动实例
 export function setActiveInstance(vm: Component) {
   const prevActiveInstance = activeInstance
   activeInstance = vm
+  // 将之前的活动实例设为当前活动实例
   return () => {
     activeInstance = prevActiveInstance
   }
@@ -66,16 +68,20 @@ export function lifecycleMixin (Vue: Class<Component>) {
     const vm: Component = this
     const prevEl = vm.$el
     const prevVnode = vm._vnode
+    // TODO slot、transition-group有关
     const restoreActiveInstance = setActiveInstance(vm)
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
+    // __patch__函数在/platforms/web/runtime/index.js中定义，服务端渲染则__patch__为空函数
     // TODO 这里的真实dom如何对应上属于它的虚拟dom？
     if (!prevVnode) {
       // initial render
+      // 初始化渲染
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
     } else {
       // updates
+      // 更新
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
     restoreActiveInstance()
@@ -155,6 +161,8 @@ export function mountComponent (
     vm.$options.render = createEmptyVNode
     if (process.env.NODE_ENV !== 'production') {
       /* istanbul ignore if */
+      // 运行时版本不支持将模板编译成render函数
+      // 为什么判断el？是因为render函数、template属性都不存在的情况下，会将el的html模板提取出来当作模板
       if ((vm.$options.template && vm.$options.template.charAt(0) !== '#') ||
         vm.$options.el || el) {
         warn(
@@ -340,12 +348,15 @@ export function deactivateChildComponent (vm: Component, direct?: boolean) {
   }
 }
 
+// 调用生命周期钩子函数
 export function callHook (vm: Component, hook: string) {
+  // TODO
   // #7573 disable dep collection when invoking lifecycle hooks
   pushTarget()
   const handlers = vm.$options[hook]
   const info = `${hook} hook`
   if (handlers) {
+    // 每个生命周期钩子函数都可以是数组
     for (let i = 0, j = handlers.length; i < j; i++) {
       invokeWithErrorHandling(handlers[i], vm, null, vm, info)
     }

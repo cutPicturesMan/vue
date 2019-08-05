@@ -92,6 +92,7 @@ Vue.prototype.$mount = function (
       }
     }
   }
+  // 为什么这样写？
   return mount.call(this, el, hydrating)
 }
 

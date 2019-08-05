@@ -319,6 +319,7 @@ describe('Component', () => {
     }).not.toThrow()
   })
 
+  // 正确更新被替换掉根节点的高阶组件
   it('properly update replaced higher-order component root node', done => {
     const vm = new Vue({
       data: {

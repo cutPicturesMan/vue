@@ -38,6 +38,8 @@ export function initMixin (Vue: Class<Component>) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
+      // 优化内部组件实例化
+      // 因为options的动态合并相当缓慢，并且没有内部组件的options需要特殊对待
       initInternalComponent(vm, options)
     } else {
       // 将options的多种情况，比如props的多种传参方式，转变为固定的一种
@@ -78,7 +80,9 @@ export function initMixin (Vue: Class<Component>) {
   }
 }
 
+// 初始化内部组件
 export function initInternalComponent (vm: Component, options: InternalComponentOptions) {
+  // TODO 为什么要继承父级的options？
   const opts = vm.$options = Object.create(vm.constructor.options)
   // doing this because it's faster than dynamic enumeration.
   const parentVnode = options._parentVnode

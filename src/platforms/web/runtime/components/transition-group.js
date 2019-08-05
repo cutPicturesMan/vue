@@ -37,6 +37,7 @@ export default {
   beforeMount () {
     const update = this._update
     this._update = (vnode, hydrating) => {
+      // TODO https://github.com/vuejs/vue/issues/9151
       const restoreActiveInstance = setActiveInstance(this)
       // force removing pass
       this.__patch__(
