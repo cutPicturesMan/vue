@@ -132,6 +132,7 @@ describe('Instance properties', () => {
       data: { foo: 'foo' },
       components: {
         foo: {
+          // 子组件中的props声明了bar，$attrs中则不会包含bar
           props: ['bar'],
           template: `<div><div v-bind="$attrs"></div></div>`
         }

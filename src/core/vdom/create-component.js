@@ -55,6 +55,8 @@ const componentVNodeHooks = {
     }
   },
 
+  // 新旧节点都存在时，才会调用prepatch钩子函数
+  // 即组件被复用，只需要根据传入的props、slots来更新子组件即可
   prepatch (oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
     const options = vnode.componentOptions
     const child = vnode.componentInstance = oldVnode.componentInstance

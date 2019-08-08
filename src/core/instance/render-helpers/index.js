@@ -26,7 +26,7 @@ export function installRenderHelpers (target: any) {
   target._b = bindObjectProps // 处理v-bind绑定的参数为对象的情况【codegen/index.js】
   target._v = createTextVNode // 创建文字节点【codegen/index.js】
   target._e = createEmptyVNode // 创建注释节点【codegen/index.js】
-  target._u = resolveScopedSlots // 解决局部作用域的slot【codegen/index.js】
+  target._u = resolveScopedSlots // 解决局部作用域插槽【codegen/index.js】
   target._g = bindObjectListeners // 绑定对象监听【/src/compiler/directives/on.js】
   target._d = bindDynamicKeys // 处理动态key绑定 :[key]="xxx"【codegen/index.js】
   target._p = prependModifier  // 为事件动态添加修饰符【/src/compiler/helpers.js】
