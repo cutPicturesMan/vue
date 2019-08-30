@@ -42,10 +42,11 @@ const componentVNodeHooks = {
       vnode.data.keepAlive
     ) {
       // kept-alive components, treat as a patch
+      // TODO keep-alive特性待看
       const mountedNode: any = vnode // work around flow
       componentVNodeHooks.prepatch(mountedNode, mountedNode)
     } else {
-      // 如果组件不存在或已销毁，则创建组件
+      // 如果组件不存在或已销毁，则初始化新的Vue实例
       const child = vnode.componentInstance = createComponentInstanceForVnode(
         vnode,
         activeInstance
@@ -55,8 +56,9 @@ const componentVNodeHooks = {
     }
   },
 
-  // 新旧节点都存在时，才会调用prepatch钩子函数
-  // 即组件被复用，只需要根据传入的props、slots来更新子组件即可
+  // diff操作之前进行的处理
+  // 该组件本身没有被替换，而是被复用，才会调用此函数
+  // 只需要根据传入的props、slots来更新子组件即可
   prepatch (oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
     const options = vnode.componentOptions
     const child = vnode.componentInstance = oldVnode.componentInstance
