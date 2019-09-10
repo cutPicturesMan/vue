@@ -20,20 +20,26 @@ export function traverse (val: any) {
 function _traverse (val: any, seen: SimpleSet) {
   let i, keys
   const isA = Array.isArray(val)
+  // 既不是数组，也不是对象 || 所有属性不可配置 || 从VNode节点继承
   if ((!isA && !isObject(val)) || Object.isFrozen(val) || val instanceof VNode) {
     return
   }
+  // 该对象已被监听
   if (val.__ob__) {
     const depId = val.__ob__.dep.id
+    // 该对象已经处理过
     if (seen.has(depId)) {
       return
     }
     seen.add(depId)
   }
+  // 数组
   if (isA) {
     i = val.length
+    // 访问数组中每个值的getter
     while (i--) _traverse(val[i], seen)
   } else {
+    // 对象
     keys = Object.keys(val)
     i = keys.length
     // 最后再访问key调用getter

@@ -167,6 +167,10 @@ export function _createElement (
   let vnode, ns
   if (typeof tag === 'string') {
     let Ctor
+    // 如果父级有命名空间，则直接使用父级的命名空间
+    // 对于<a>标签来说，html和svg中同时存在，单靠config.getTagNamespace()无法判断当前的命名空间，需要靠父级来判断
+    // https://github.com/vuejs/vue/issues/6506
+    // https://developer.mozilla.org/zh-CN/docs/Web/SVG/Element/a
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag)
     // 如果tag是平台保留标签，则直接创建VNode对象
     if (config.isReservedTag(tag)) {
@@ -231,9 +235,12 @@ export function _createElement (
     vnode = createComponent(tag, data, context, children)
   }
   // TODO https://github.com/vuejs/vue/issues/7292#issue-283588912
+  // options.render()返回的vnode是数组，则直接返回
   if (Array.isArray(vnode)) {
     return vnode
   } else if (isDef(vnode)) {
+    // vnode有值，则处理
+    // options.render()有可能返回null，这里必须同时判断undefined和null
     if (isDef(ns)) applyNS(vnode, ns)
     if (isDef(data)) registerDeepBindings(data)
     return vnode
@@ -242,16 +249,21 @@ export function _createElement (
   }
 }
 
+// 设置元素的命名空间
 function applyNS (vnode, ns, force) {
+  // 设置当前元素的命名空间
   vnode.ns = ns
+  // <foreignObject>元素可以包含不同的XML命名空间，因此不再指定其子级的命名空间
   if (vnode.tag === 'foreignObject') {
     // use default namespace inside foreignObject
     ns = undefined
     force = true
   }
+  // 设置子元素的命名空间
   if (isDef(vnode.children)) {
     for (let i = 0, l = vnode.children.length; i < l; i++) {
       const child = vnode.children[i]
+      // 存在子标签 && （子标签的ns未定义 || 强制设置非<svg>子标签ns为默认值）
       if (isDef(child.tag) && (
         isUndef(child.ns) || (isTrue(force) && child.tag !== 'svg'))) {
         applyNS(child, ns, force)
@@ -263,6 +275,8 @@ function applyNS (vnode, ns, force) {
 // ref #5318
 // necessary to ensure parent re-render when deep bindings like :style and
 // :class are used on slot nodes
+// 在slot节点上使用深度绑定（如:style、:class）时，必须确保父元素重新渲染
+// test/unit/features/directives/style.spec.js
 function registerDeepBindings (data) {
   if (isObject(data.style)) {
     traverse(data.style)

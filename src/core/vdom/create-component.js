@@ -266,10 +266,13 @@ export function createComponentInstanceForVnode (
 function installComponentHooks (data: VNodeData) {
   const hooks = data.hook || (data.hook = {})
   for (let i = 0; i < hooksToMerge.length; i++) {
+    // init、prepatch、insert、destroy
     const key = hooksToMerge[i]
     const existing = hooks[key]
     const toMerge = componentVNodeHooks[key]
+    // 钩子函数不同 && 自定义的钩子函数未被合并
     if (existing !== toMerge && !(existing && existing._merged)) {
+      // 合并自定义钩子函数
       hooks[key] = existing ? mergeHook(toMerge, existing) : toMerge
     }
   }
