@@ -319,6 +319,8 @@ export function updateChildComponent (
   }
 }
 
+// 向上查找最近的不活跃父级
+// 找到了，则返回true；否则一直向上查找，没找到的话，返回false
 function isInInactiveTree (vm) {
   while (vm && (vm = vm.$parent)) {
     if (vm._inactive) return true
@@ -351,8 +353,11 @@ export function deactivateChildComponent (vm: Component, direct?: boolean) {
       return
     }
   }
+  // 是活跃的组件
   if (!vm._inactive) {
+    // 将不活跃标识设为true
     vm._inactive = true
+    // 循环设置子级为不活跃
     for (let i = 0; i < vm.$children.length; i++) {
       deactivateChildComponent(vm.$children[i])
     }

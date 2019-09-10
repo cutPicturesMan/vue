@@ -62,6 +62,7 @@ const componentVNodeHooks = {
   prepatch (oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
     const options = vnode.componentOptions
     const child = vnode.componentInstance = oldVnode.componentInstance
+    // TODO 未看完
     updateChildComponent(
       child,
       options.propsData, // updated props
@@ -71,6 +72,8 @@ const componentVNodeHooks = {
     )
   },
 
+  // 在dom插入到页面之后调用，具体调用在patch.js中的invokeInsertHook()
+  // TODO 待看
   insert (vnode: MountedComponentVNode) {
     const { context, componentInstance } = vnode
     if (!componentInstance._isMounted) {
@@ -91,12 +94,16 @@ const componentVNodeHooks = {
     }
   },
 
+  // TODO 待看
   destroy (vnode: MountedComponentVNode) {
     const { componentInstance } = vnode
+    // 组件未被销毁
     if (!componentInstance._isDestroyed) {
+      // 非keep-alive组件，直接销毁
       if (!vnode.data.keepAlive) {
         componentInstance.$destroy()
       } else {
+        // keep-alive组件，进入deactivated状态
         deactivateChildComponent(componentInstance, true /* direct */)
       }
     }
@@ -268,9 +275,14 @@ function installComponentHooks (data: VNodeData) {
   for (let i = 0; i < hooksToMerge.length; i++) {
     // init、prepatch、insert、destroy
     const key = hooksToMerge[i]
+    // TODO data.hook表示的是父级钩子函数？
     const existing = hooks[key]
+    // 默认钩子函数
     const toMerge = componentVNodeHooks[key]
-    // 钩子函数不同 && 自定义的钩子函数未被合并
+    // 避免当组件共享相同的数据对象时，组件被复制
+    // https://github.com/vuejs/vue/issues/7805
+    // /test/unit/modules/vdom/patch/edge-cases.spec.js #7805
+    // 钩子函数不同 && 针对以下2种情况进行赋值：1、根本没有父级钩子，则对应钩子函数为内部钩子；2、父级钩子存在且一次都未合并，则将其与内部钩子合并
     if (existing !== toMerge && !(existing && existing._merged)) {
       // 合并自定义钩子函数
       hooks[key] = existing ? mergeHook(toMerge, existing) : toMerge
@@ -284,6 +296,7 @@ function mergeHook (f1: any, f2: any): Function {
     f1(a, b)
     f2(a, b)
   }
+  // 钩子函数是否被合并
   merged._merged = true
   return merged
 }
