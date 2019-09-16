@@ -51,7 +51,8 @@ export default class VNode {
     this.elm = elm
     // 名字空间
     this.ns = undefined
-    // 编译作用域
+    // 当前节点所处的Vue上下文环境，即父级Vue对象
+    // Vue上下文环境对象由new Vue()以及创建组件时的Vue.extend()产生
     this.context = context
     // 函数化组件作用域
     this.fnContext = undefined
@@ -63,7 +64,8 @@ export default class VNode {
     this.key = data && data.key
     // 组件option选项
     this.componentOptions = componentOptions
-    // 当前对应的组件实例
+    // 如果当前节点是组件，则表示节点的组件实例，由Vue.extend()创建而来
+    // 在组件钩子函数prepatch中赋值
     this.componentInstance = undefined
     // 父节点
     this.parent = undefined

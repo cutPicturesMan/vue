@@ -51,11 +51,14 @@ export function initLifecycle (vm: Component) {
   vm.$parent = parent
   vm.$root = parent ? parent.$root : vm
 
+  // 子组件
   vm.$children = []
   vm.$refs = {}
 
   vm._watcher = null
+  // <keep-alive>相关状态，是否是不活跃组件
   vm._inactive = null
+  // TODO 
   vm._directInactive = false
   vm._isMounted = false
   vm._isDestroyed = false
@@ -107,8 +110,10 @@ export function lifecycleMixin (Vue: Class<Component>) {
     }
   }
 
+  // 销毁组件
   Vue.prototype.$destroy = function () {
     const vm: Component = this
+    // 防止重复销毁
     if (vm._isBeingDestroyed) {
       return
     }
@@ -116,6 +121,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
     vm._isBeingDestroyed = true
     // remove self from parent
     const parent = vm.$parent
+    // 存在父级 && 父级不处于正在销毁中 && 本组件不是抽象组件，则将本组件从parent.$children移出
     if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
       remove(parent.$children, vm)
     }
@@ -319,8 +325,8 @@ export function updateChildComponent (
   }
 }
 
-// 向上查找最近的不活跃父级
-// 找到了，则返回true；否则一直向上查找，没找到的话，返回false
+// 是否处于不活跃树中
+// 向上查找最近的不活跃父级，找到了，则返回true；否则一直向上查找，没找到的话，返回false
 function isInInactiveTree (vm) {
   while (vm && (vm = vm.$parent)) {
     if (vm._inactive) return true
@@ -328,15 +334,21 @@ function isInInactiveTree (vm) {
   return false
 }
 
+// TODO 分析vm._directInactive的步骤：1、不考虑嵌套的情况，直接设置当前以及子组件状态；2、考虑嵌套的2种情况；3、最后加上嵌套的第二种情况
 export function activateChildComponent (vm: Component, direct?: boolean) {
+  // 处理<keep-alive></keep-alive>包裹的直接组件
   if (direct) {
     vm._directInactive = false
+    // 在嵌套keep-alive组件情况下
+    // 1、如果父组件是不活跃状态，则不允许修改本keep-alive组件的状态为活跃
     if (isInInactiveTree(vm)) {
       return
     }
   } else if (vm._directInactive) {
+    // 2、如果子组件已经被设置为不活跃状态，则在循环子组件时，不修改该子组件的状态为活跃
     return
   }
+  // 不活跃状态 || 初始化状态，则将当前状态以及子组件状态改变为活跃状态，并调用activated钩子函数
   if (vm._inactive || vm._inactive === null) {
     vm._inactive = false
     for (let i = 0; i < vm.$children.length; i++) {
@@ -347,15 +359,16 @@ export function activateChildComponent (vm: Component, direct?: boolean) {
 }
 
 export function deactivateChildComponent (vm: Component, direct?: boolean) {
+  // 处理<keep-alive></keep-alive>包裹的直接组件
   if (direct) {
     vm._directInactive = true
+    // 在嵌套keep-alive组件情况下，如果父组件是不活跃状态，则不允许修改本组件的状态为不活跃
     if (isInInactiveTree(vm)) {
       return
     }
   }
-  // 是活跃的组件
+  // 是活跃的组件，将不活跃标识设为true
   if (!vm._inactive) {
-    // 将不活跃标识设为true
     vm._inactive = true
     // 循环设置子级为不活跃
     for (let i = 0; i < vm.$children.length; i++) {

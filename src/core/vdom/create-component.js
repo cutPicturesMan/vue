@@ -73,13 +73,15 @@ const componentVNodeHooks = {
   },
 
   // 在dom插入到页面之后调用，具体调用在patch.js中的invokeInsertHook()
-  // TODO 待看
   insert (vnode: MountedComponentVNode) {
+    // TODO context、componentInstance的区别
     const { context, componentInstance } = vnode
+    // 组件未渲染，则执行mounted钩子函数
     if (!componentInstance._isMounted) {
       componentInstance._isMounted = true
       callHook(componentInstance, 'mounted')
     }
+    // 处理keep-alive组件
     if (vnode.data.keepAlive) {
       if (context._isMounted) {
         // vue-router#1212
@@ -87,14 +89,16 @@ const componentVNodeHooks = {
         // change, so directly walking the tree here may call activated hooks
         // on incorrect children. Instead we push them into a queue which will
         // be processed after the whole patch process ended.
+        // 在更新时，使用了keep-alive组件的子组件有可能改变，如果在这时直接遍历树，可能会在错误的子节点上调用activated钩子函数
+        // 作为替代，我们将整个树推入一个队列，在patch过程结束时，处理该队列
         queueActivatedComponent(componentInstance)
       } else {
+        // 进入deactivated状态
         activateChildComponent(componentInstance, true /* direct */)
       }
     }
   },
 
-  // TODO 待看
   destroy (vnode: MountedComponentVNode) {
     const { componentInstance } = vnode
     // 组件未被销毁
@@ -251,9 +255,10 @@ export function createComponent (
   return vnode
 }
 
-// 根据虚拟dom创建组件实例
+// 根据vnode创建组件实例
 export function createComponentInstanceForVnode (
   vnode: any, // we know it's MountedComponentVNode but flow doesn't
+  // lifecycle.js文件中的activeInstance变量
   parent: any, // activeInstance in lifecycle state
 ): Component {
   const options: InternalComponentOptions = {
