@@ -81,6 +81,7 @@ export default {
   },
 
   render () {
+    // 数组，包括了所有没有被包含在具名插槽中的节点，或 v-slot:default 的内容
     const slot = this.$slots.default
     const vnode: VNode = getFirstComponentChild(slot)
     const componentOptions: ?VNodeComponentOptions = vnode && vnode.componentOptions

@@ -235,12 +235,15 @@ export default class Watcher {
 
   /**
    * Remove self from all dependencies' subscriber list.
+   * 从所有依赖项的订阅者列表中删除自身
    */
   teardown () {
     if (this.active) {
       // remove self from vm's watcher list
       // this is a somewhat expensive operation so we skip it
       // if the vm is being destroyed.
+      // 将自身从vm._watchers中移除
+      // 这是一个有点昂贵的操作，所以如果vm处于销毁阶段，则跳过此操作
       if (!this.vm._isBeingDestroyed) {
         remove(this.vm._watchers, this)
       }

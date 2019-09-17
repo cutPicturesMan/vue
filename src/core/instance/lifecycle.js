@@ -58,10 +58,13 @@ export function initLifecycle (vm: Component) {
   vm._watcher = null
   // <keep-alive>相关状态，是否是不活跃组件
   vm._inactive = null
-  // TODO 
+  // TODO
   vm._directInactive = false
+  // 是否已经挂载到页面
   vm._isMounted = false
+  // 是否已经被销毁
   vm._isDestroyed = false
+  // 是否正在被销毁中
   vm._isBeingDestroyed = false
 }
 
@@ -111,6 +114,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
   }
 
   // 销毁组件
+  // TODO 待看
   Vue.prototype.$destroy = function () {
     const vm: Component = this
     // 防止重复销毁

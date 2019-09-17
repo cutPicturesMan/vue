@@ -36,6 +36,7 @@ export default class VNode {
     text?: string,
     elm?: Node,
     context?: Component,
+    // 组件选项，有值，表示该vnode是组件
     componentOptions?: VNodeComponentOptions,
     asyncFactory?: Function
   ) {
@@ -81,7 +82,7 @@ export default class VNode {
     this.isCloned = false
     // 是否有v-once指令
     this.isOnce = false
-    // 异步组件
+    // 异步组件工厂函数
     this.asyncFactory = asyncFactory
     this.asyncMeta = undefined
     // 异步组件占位符
