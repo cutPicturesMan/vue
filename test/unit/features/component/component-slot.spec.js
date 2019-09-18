@@ -738,6 +738,7 @@ describe('Component slot', () => {
     }).then(done)
   })
 
+  // TODO 如果未被Vue组件吸收，应保留slot属性
   it('should preserve slot attribute if not absorbed by a Vue component', () => {
     const vm = new Vue({
       template: `
