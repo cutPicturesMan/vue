@@ -35,7 +35,8 @@ export function resolveSlots (
     }
     // named slots should only be respected if the vnode was rendered in the
     // same context.
-    // 仅当在同一上下文中渲染vnode时，才应该认为是命名插槽
+    // TODO 为什么要判断相同的context
+    // 仅当在同一上下文中渲染vnode时，才认为是命名插槽
     // data.slot有可能是数字0，因此需要 != null
     if ((child.context === context || child.fnContext === context) &&
       data && data.slot != null
@@ -53,6 +54,9 @@ export function resolveSlots (
     }
   }
   // ignore slots that contains only whitespace
+  // 如果将空格、注释当做default slot，会导致default slot的默认内容不显示，因此要去掉
+  // <test><div slot="first">1</div> <div slot="second">2</div></test>
+  // TODO 为何除了default slot，named slot也要排除空格？
   for (const name in slots) {
     if (slots[name].every(isWhitespace)) {
       delete slots[name]
@@ -62,5 +66,8 @@ export function resolveSlots (
 }
 
 function isWhitespace (node: VNode): boolean {
+  // 注释节点（排除掉异步组件占位符） || 空白节点
+  // TODO 为何要排除掉注释节点？注释节点好像并不会存在于ast树中？
+  // TODO https://github.com/vuejs/vue/issues/7041
   return (node.isComment && !node.asyncFactory) || node.text === ' '
 }
