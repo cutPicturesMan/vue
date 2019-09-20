@@ -960,7 +960,6 @@ function processComponent (el) {
 }
 
 /**
- *
  * 处理el.attrsList数组中剩余的属性：
  * 1、v-text、v-html、v-show、v-on、v-bind、v-model、v-cloak
  * 2、自定义绑定属性、自定义事件、自定义非绑定属性：

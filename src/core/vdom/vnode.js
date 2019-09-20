@@ -61,7 +61,7 @@ export default class VNode {
     this.fnOptions = undefined
     //
     this.fnScopeId = undefined
-    // key标识
+    // 唯一标识符，例如v-for需要搭配唯一的key属性
     this.key = data && data.key
     // 组件option选项
     this.componentOptions = componentOptions

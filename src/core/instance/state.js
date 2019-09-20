@@ -298,10 +298,12 @@ function createGetterInvoker(fn) {
   }
 }
 
+// 初始化methods
 function initMethods (vm: Component, methods: Object) {
   const props = vm.$options.props
   for (const key in methods) {
     if (process.env.NODE_ENV !== 'production') {
+      // 方法类型定义错误
       if (typeof methods[key] !== 'function') {
         warn(
           `Method "${key}" has type "${typeof methods[key]}" in the component definition. ` +
@@ -309,12 +311,14 @@ function initMethods (vm: Component, methods: Object) {
           vm
         )
       }
+      // 方法名已经被props定义，则提示
       if (props && hasOwn(props, key)) {
         warn(
           `Method "${key}" has already been defined as a prop.`,
           vm
         )
       }
+      // 方法名存在于vm上 && 该方法名以 _ 或 $ 开头，说明与内置函数重名
       if ((key in vm) && isReserved(key)) {
         warn(
           `Method "${key}" conflicts with an existing Vue instance method. ` +
@@ -322,6 +326,8 @@ function initMethods (vm: Component, methods: Object) {
         )
       }
     }
+    // 由于methods是用户自定义，可能出现类型定义错了的情况
+    // 将非函数类型，默认赋值noop空函数。属于函数类型，this绑定到vm上
     vm[key] = typeof methods[key] !== 'function' ? noop : bind(methods[key], vm)
   }
 }
