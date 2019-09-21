@@ -982,9 +982,11 @@ function processAttrs (el) {
   const list = el.attrsList
   let i, l, name, rawName, value, modifiers, syncGen, isDynamic
   for (i = 0, l = list.length; i < l; i++) {
+    // 属性名
     name = rawName = list[i].name
+    // 属性值
     value = list[i].value
-    // 如果属性是指令
+    // 如果属性名是指令
     if (dirRE.test(name)) {
       // mark element as dynamic
       el.hasBindings = true
@@ -1073,8 +1075,11 @@ function processAttrs (el) {
           addAttr(el, name, value, list[i], isDynamic)
         }
       } else if (onRE.test(name)) { // v-on
+        // 替换前缀，取出事件名称
         name = name.replace(onRE, '')
+        // 是否是动态事件名
         isDynamic = dynamicArgRE.test(name)
+        // 如果是动态事件名（被[]包裹），则取中间的事件名称
         if (isDynamic) {
           name = name.slice(1, -1)
         }
