@@ -26,7 +26,7 @@ export const onRE = /^@|^v-on:/
 // 检测标签属性名是否是指令
 // @为v-on的缩写
 // :为v-bind的缩写
-// TODO .修饰符并非用在开头，为何要放到这里？
+// .修饰符新特性：https://github.com/vuejs/vue/issues/7582
 export const dirRE = process.env.VBIND_PROP_SHORTHAND
   ? /^v-|^@|^:|^\./
   : /^v-|^@|^:/
