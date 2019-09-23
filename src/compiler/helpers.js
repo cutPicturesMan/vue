@@ -81,7 +81,7 @@ export function addHandler (
   modifiers = modifiers || emptyObject
   // warn prevent and passive modifier
   /* istanbul ignore if */
-  // passive表示不阻止事件的默认行为。prevent与其连用时，将会被忽略
+  // passive表示不阻止事件的默认行为。prevent与其连用时，prevent将会被忽略
   if (
     process.env.NODE_ENV !== 'production' && warn &&
     modifiers.prevent && modifiers.passive
@@ -97,6 +97,12 @@ export function addHandler (
   // this is technically browser-specific, but at least for now browsers are
   // the only target envs that have right/middle clicks.
 
+  // 由于click.right、click.middle实际上不会触发，因此需要规范化
+  // 这在技术上是特定于浏览器的，但至少就目前而言，浏览器是唯一具有右键/中间点击的目标环境。
+
+  // click.right -> contextmenu（鼠标右击触发的html5事件）
+  // click.middle -> mouseup（点击非鼠标主按钮时，触发auxclick事件，一般是点击鼠标中键触发。但由于auxclick事件不受普遍支持，因此不得不使用mouseup。mouseup事件并不是完美的，如果在元素外单击中键，并拖动到元素上松开时，也会触发mouseup事件。但是它已经足够接近了，并且拖动中键单击似乎是极为罕见操作）
+  // TODO 某元素上绑定了click、click.middle事件，单击鼠标左键时，为什么不会触发click.middle(mouseup)事件？
   // https://github.com/vuejs/vue/issues/7020
   if (modifiers.right) {
     if (dynamic) {
