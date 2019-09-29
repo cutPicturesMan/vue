@@ -61,6 +61,7 @@ export function addDirective (
   el.plain = false
 }
 
+// 预处理修饰符标记
 function prependModifierMarker (symbol: string, name: string, dynamic?: boolean): string {
   return dynamic
     ? `_p(${name},"${symbol}")`
@@ -120,18 +121,18 @@ export function addHandler (
   }
 
   // check capture modifier
-  // 事件捕获模式
+  // ! -> 事件捕获模式
   if (modifiers.capture) {
     delete modifiers.capture
     name = prependModifierMarker('!', name, dynamic)
   }
-  // 事件只会触发一次
+  // ~ -> 事件只会触发一次
   if (modifiers.once) {
     delete modifiers.once
     name = prependModifierMarker('~', name, dynamic)
   }
   /* istanbul ignore if */
-  // 不阻止事件的默认行为
+  // & -> 不阻止事件的默认行为
   if (modifiers.passive) {
     delete modifiers.passive
     name = prependModifierMarker('&', name, dynamic)
