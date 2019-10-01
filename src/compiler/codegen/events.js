@@ -94,19 +94,27 @@ function genWeexHandler (params: Array<any>, handlerCode: string) {
 }
 
 function genHandler (handler: ASTElementHandler | Array<ASTElementHandler>): string {
+  // @click=''
   if (!handler) {
     return 'function(){}'
   }
 
+  // 多次绑定同一个事件，handler为数组
   if (Array.isArray(handler)) {
     return `[${handler.map(handler => genHandler(handler)).join(',')}]`
   }
 
+  // 事件名称是函数声明式，@click="fn"
   const isMethodPath = simplePathRE.test(handler.value)
+  // 事件名称是函数表达式，@click="function(){ ... }" 或 @click="() => { ... }"
   const isFunctionExpression = fnExpRE.test(handler.value)
+  // 事件名称是内联js语句，这是一条JS语句，而不是方法名 @click="fn(arg1)"
+  // 不支持自执行函数：@click="function(){ ... }()" 或 @click="() => { ... }()"
+  // 不支持自执行函数的情况下，自然不支持这种：@click="function(){ return function () {}  }()"
   const isFunctionInvocation = simplePathRE.test(handler.value.replace(fnInvokeRE, ''))
 
   if (!handler.modifiers) {
+    // 先处理函数声明式 和 函数表达式，这两种形式直接返回即可
     if (isMethodPath || isFunctionExpression) {
       return handler.value
     }
@@ -114,6 +122,7 @@ function genHandler (handler: ASTElementHandler | Array<ASTElementHandler>): str
     if (__WEEX__ && handler.params) {
       return genWeexHandler(handler.params, handler.value)
     }
+    // 内联js语句的处理，即用函数包裹
     return `function($event){${
       isFunctionInvocation ? `return ${handler.value}` : handler.value
     }}` // inline statement
