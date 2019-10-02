@@ -1,6 +1,9 @@
 /* @flow */
-
+// 匹配函数2种声明形式：
+// 1、箭头函数：arg => 或者 (arg1, arg2) =>
+// 2、函数声明：function a (
 const fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function\s*(?:[\w$]+)?\s*\(/
+// 匹配函数调用时的括号，如fn(a, b, c);中的'(a, b, c);'
 const fnInvokeRE = /\([^)]*?\);*$/
 const simplePathRE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['[^']*?']|\["[^"]*?"]|\[\d+]|\[[A-Za-z_$][\w$]*])*$/
 
@@ -94,10 +97,12 @@ function genWeexHandler (params: Array<any>, handlerCode: string) {
 }
 
 function genHandler (handler: ASTElementHandler | Array<ASTElementHandler>): string {
+  // TODO 什么情况下，handler没有值
   if (!handler) {
     return 'function(){}'
   }
 
+  // 一个事件添加了多个处理函数，循环调用genHandler生成字符串
   if (Array.isArray(handler)) {
     return `[${handler.map(handler => genHandler(handler)).join(',')}]`
   }
