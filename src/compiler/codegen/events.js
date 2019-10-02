@@ -155,7 +155,9 @@ function genHandler (handler: ASTElementHandler | Array<ASTElementHandler>): str
     let code = ''
     let genModifierCode = ''
     const keys = []
+    // 循环处理修饰符
     for (const key in handler.modifiers) {
+      // 该修饰符存在对应的处理代码，则赋值
       if (modifierCode[key]) {
         genModifierCode += modifierCode[key]
         // left/right
@@ -163,9 +165,12 @@ function genHandler (handler: ASTElementHandler | Array<ASTElementHandler>): str
           keys.push(key)
         }
       } else if (key === 'exact') {
+        // 如果修饰符是exact，且指定了系统按键修饰符，表示精确匹配到系统按键组合时，才会触发相应事件；没有指定系统按键修饰符，则表示在没有系统按键组合时，才会触发相应事件
         const modifiers: ASTModifiers = (handler.modifiers: any)
+        // TODO genGuard的作用
         genModifierCode += genGuard(
           ['ctrl', 'shift', 'alt', 'meta']
+            // 过滤掉声明的系统修饰符
             .filter(keyModifier => !modifiers[keyModifier])
             .map(keyModifier => `$event.${keyModifier}Key`)
             .join('||')
