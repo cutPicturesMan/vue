@@ -120,6 +120,7 @@ export function addHandler (
     }
   }
 
+  // TODO 为什么要特殊处理capture、once、passive
   // check capture modifier
   // ! -> 事件捕获模式
   if (modifiers.capture) {
@@ -147,30 +148,44 @@ export function addHandler (
   }
 
   /**
-   TODO 为何要这样做：.capture -> !、.once -> ~、.passive -> &
-   <div @click.prevent="handleClick1" @click="handleClick2" @click.self="handleClick3"></div>
-
-   el.events = {
-      "click": [{
-        value: "handleClick1",
-        dynamic: false,
-        modifiers: { prevent: true }
-     }, {
-        value: "handleClick2",
-        dynamic: false,
-        modifiers: {}
-     }, {
-        value: "handleClick3",
-        dynamic: false,
-        modifiers: { self: true }
-     }]
-   }
+   组装成新的结构：
+    {
+      dynamic: false,
+      end: 20,
+      start: 5,
+      value: "toggle"
+    }
    */
   const newHandler: any = rangeSetItem({ value: value.trim(), dynamic }, range)
   if (modifiers !== emptyObject) {
     newHandler.modifiers = modifiers
   }
 
+  /**
+   TODO 为何要这样做：.capture -> !、.once -> ~、.passive -> &
+   <div @click.prevent="a" @click="b" @click.self="c"></div>
+
+   el.events = {
+     "click": [{
+       value: "a",
+       modifiers: { prevent: true },
+       dynamic: false,
+       start: 5,
+       end: 23
+     }, {
+       value: "b",
+       dynamic: false,
+       end: 34,
+       start: 24,
+     }, {
+       value: "c",
+       modifiers: {self: true},
+       dynamic: false,
+       start: 35,
+       end: 50,
+     }]
+   }
+   */
   const handlers = events[name]
   /* istanbul ignore if */
   if (Array.isArray(handlers)) {

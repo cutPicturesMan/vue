@@ -1,6 +1,9 @@
 /* @flow */
-
+// 匹配函数2种声明形式：
+// 1、箭头函数：arg => 或者 (arg1, arg2) =>
+// 2、函数声明：function a (
 const fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function\s*(?:[\w$]+)?\s*\(/
+// 匹配函数调用时的括号，如fn(a, b, c);中的'(a, b, c);'
 const fnInvokeRE = /\([^)]*?\);*$/
 const simplePathRE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['[^']*?']|\["[^"]*?"]|\[\d+]|\[[A-Za-z_$][\w$]*])*$/
 
@@ -39,6 +42,22 @@ const keyNames: { [key: string]: string | Array<string> } = {
 // the listener for .once
 const genGuard = condition => `if(${condition})return null;`
 
+/**
+ 修饰符
+ .capture - 添加事件侦听器时使用 capture 模式。
+ .once - 只触发一次回调。
+ .passive - (2.3.0) 以 { passive: true } 模式添加侦听器
+
+ .native - 监听组件根元素的原生事件。
+
+ .stop - 调用 event.stopPropagation()。
+ .prevent - 调用 event.preventDefault()。
+ .self - 只当事件是从侦听器绑定的元素本身触发时才触发回调。
+ .{keyCode | keyAlias} - 只当事件是从特定键触发时才触发回调。
+ .left - (2.2.0) 只当点击鼠标左键时触发。
+ .right - (2.2.0) 只当点击鼠标右键时触发。
+ .middle - (2.2.0) 只当点击鼠标中键时触发。
+ */
 const modifierCode: { [key: string]: string } = {
   stop: '$event.stopPropagation();',
   prevent: '$event.preventDefault();',
@@ -52,6 +71,9 @@ const modifierCode: { [key: string]: string } = {
   right: genGuard(`'button' in $event && $event.button !== 2`)
 }
 
+// 处理事件
+// <div @[event]="dynamic" @click="static"></div>
+// "on:_d({"click":static},[event,dynamic])"
 export function genHandlers (
   events: ASTElementHandlers,
   isNative: boolean
@@ -67,10 +89,13 @@ export function genHandlers (
       staticHandlers += `"${name}":${handlerCode},`
     }
   }
+  // 去掉最后一个逗号
   staticHandlers = `{${staticHandlers.slice(0, -1)}}`
+  // 含有动态事件名的情况
   if (dynamicHandlers) {
     return prefix + `_d(${staticHandlers},[${dynamicHandlers.slice(0, -1)}])`
   } else {
+    // 不含有动态事件名
     return prefix + staticHandlers
   }
 }
@@ -94,19 +119,27 @@ function genWeexHandler (params: Array<any>, handlerCode: string) {
 }
 
 function genHandler (handler: ASTElementHandler | Array<ASTElementHandler>): string {
+  // @click=''
   if (!handler) {
     return 'function(){}'
   }
 
+  // 多次绑定同一个事件，handler为数组
   if (Array.isArray(handler)) {
     return `[${handler.map(handler => genHandler(handler)).join(',')}]`
   }
 
+  // 事件名称是函数声明式，@click="fn"
   const isMethodPath = simplePathRE.test(handler.value)
+  // 事件名称是函数表达式，@click="function(){ ... }" 或 @click="() => { ... }"
   const isFunctionExpression = fnExpRE.test(handler.value)
+  // 事件名称是内联js语句，这是一条JS语句，而不是方法名 @click="fn(arg1)"
+  // 不支持自执行函数：@click="function(){ ... }()" 或 @click="() => { ... }()"
+  // 不支持自执行函数的情况下，自然不支持这种：@click="function(){ return function () {}  }()"
   const isFunctionInvocation = simplePathRE.test(handler.value.replace(fnInvokeRE, ''))
 
   if (!handler.modifiers) {
+    // 先处理函数声明式 和 函数表达式，这两种形式直接返回即可
     if (isMethodPath || isFunctionExpression) {
       return handler.value
     }
@@ -114,6 +147,7 @@ function genHandler (handler: ASTElementHandler | Array<ASTElementHandler>): str
     if (__WEEX__ && handler.params) {
       return genWeexHandler(handler.params, handler.value)
     }
+    // 内联js语句的处理，即用函数包裹
     return `function($event){${
       isFunctionInvocation ? `return ${handler.value}` : handler.value
     }}` // inline statement
