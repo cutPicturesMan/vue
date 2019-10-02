@@ -170,12 +170,13 @@ function genHandler (handler: ASTElementHandler | Array<ASTElementHandler>): str
         // TODO genGuard的作用
         genModifierCode += genGuard(
           ['ctrl', 'shift', 'alt', 'meta']
-            // 过滤掉声明的系统修饰符
+            // 不阻止指定的系统修饰键
             .filter(keyModifier => !modifiers[keyModifier])
             .map(keyModifier => `$event.${keyModifier}Key`)
             .join('||')
         )
       } else {
+        // TODO 处理键码？还有没有其他情况
         keys.push(key)
       }
     }
