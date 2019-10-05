@@ -5,9 +5,15 @@
 const fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function\s*(?:[\w$]+)?\s*\(/
 // 匹配函数调用时的括号，如fn(a, b, c);中的'(a, b, c);'
 const fnInvokeRE = /\([^)]*?\);*$/
+// `] }`只与`[ {`成对出现时具有特殊含义，如果单独出现，则不需要转义
+// https://www.runoob.com/regexp/regexp-syntax.html
+// 匹配方法的路径：
+// 1、fn1
+// 2、obj.fn1、obj['fn-1']、obj["fn-1"]、obj[1]、obj[name]
 const simplePathRE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['[^']*?']|\["[^"]*?"]|\[\d+]|\[[A-Za-z_$][\w$]*])*$/
 
 // KeyboardEvent.keyCode aliases
+// 由于keyCode被废弃了，这里提供别名
 const keyCodes: { [key: string]: number | Array<number> } = {
   esc: 27,
   tab: 9,
@@ -21,6 +27,7 @@ const keyCodes: { [key: string]: number | Array<number> } = {
 }
 
 // KeyboardEvent.key aliases
+// key的别名
 const keyNames: { [key: string]: string | Array<string> } = {
   // #7880: IE11 and Edge use `Esc` for Escape key name.
   esc: ['Esc', 'Escape'],
@@ -202,6 +209,7 @@ function genHandler (handler: ASTElementHandler | Array<ASTElementHandler>): str
   }
 }
 
+// 确保key过滤器只用在键盘事件上
 function genKeyFilter (keys: Array<string>): string {
   return (
     // make sure the key filters only apply to KeyboardEvents
