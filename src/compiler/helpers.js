@@ -11,6 +11,19 @@ export function baseWarn (msg: string, range?: Range) {
 }
 /* eslint-enable no-unused-vars */
 // 从子元素均为对象的数组modules中，取出每个子元素指定key的函数，并返回数组
+/**
+  [{
+    a: ()=>{},
+    b: ()=>{ // 1 }
+  }, {
+    a: ()=>{},
+  }, {
+    a: ()=>{},
+    b: ()=>{ // 3 }
+  }]
+
+ key为b时，返回[()=>{ // 1 }, ()=>{ // 3 }]
+ */
 export function pluckModuleFunction<F: Function> (
   modules: ?Array<Object>,
   key: string
