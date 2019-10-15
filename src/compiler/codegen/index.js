@@ -67,7 +67,7 @@ export function generate (
  * @returns {*}
  */
 export function genElement (el: ASTElement, state: CodegenState): string {
-  // 将处于v-pre包裹下的标签，打上标记
+  // 当前标签有可能处于v-pre包裹下，因此当标签有父级的情况下，以父级的pre为准
   // https://github.com/vuejs/vue/issues/8286
   if (el.parent) {
     el.pre = el.pre || el.parent.pre
@@ -117,11 +117,16 @@ export function genElement (el: ASTElement, state: CodegenState): string {
 }
 
 // hoist static sub-trees out
+// 吊装静态子树
 function genStatic (el: ASTElement, state: CodegenState): string {
+  // 标记为已处理
   el.staticProcessed = true
   // Some elements (templates) need to behave differently inside of a v-pre
   // node.  All pre nodes are static roots, so we can use this as a location to
   // wrap a state change and reset it upon exiting the pre node.
+  // 在<pre>标签中，<template>需要被渲染成html标签
+  // https://github.com/vuejs/vue/issues/8041
+  // 所有的pre节点都是静态根节点，所以可以将此作为位置，去包裹状态改变，并在退出pre节点时重置它
   const originalPreState = state.pre
   if (el.pre) {
     state.pre = el.pre
@@ -488,6 +493,7 @@ function genScopedSlot (
 export function genChildren (
   el: ASTElement,
   state: CodegenState,
+  // 检查跳过，暂时先理解成：是否需要优化
   checkSkip?: boolean,
   altGenElement?: Function,
   altGenNode?: Function
@@ -496,6 +502,7 @@ export function genChildren (
   if (children.length) {
     const el: any = children[0]
     // optimize single v-for
+    // 优化单一的v-for节点
     if (children.length === 1 &&
       el.for &&
       el.tag !== 'template' &&
@@ -521,9 +528,9 @@ export function genChildren (
 // 1: simple normalization needed (possible 1-level deep nested array)
 // 2: full normalization needed
 /**
- * 根据子标签，决定规范化的程度
+ * 根据子标签，决定规范化的程度。返回值如下
  * 0：不需要规范化
- * 1：简单规范化
+ * 1：简单规范化（有可能是1级深度的嵌套数组）
  * 2：充分规范化
  */
 // TODO 啥是规范化？
@@ -534,10 +541,12 @@ function getNormalizationType (
   let res = 0
   for (let i = 0; i < children.length; i++) {
     const el: ASTNode = children[i]
+    // 如果节点类型不是html标签，则跳过
+    // type=3表示注释节点，其余是文本节点
     if (el.type !== 1) {
       continue
     }
-    // 该子级标签需要规范化 || 该子级标签的ifConditions中有一个需要规范化，立马跳出循环
+    // 该子级标签需要规范化 || 该子级标签的ifConditions中有一个需要规范化，立马跳出循环，返回2
     if (needsNormalization(el) ||
         (el.ifConditions && el.ifConditions.some(c => needsNormalization(c.block)))) {
       res = 2
