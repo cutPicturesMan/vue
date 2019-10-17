@@ -382,7 +382,7 @@ export function parse (
 
       // 如果当前元素没有被<pre>标签包裹，则进入此流程
       if (!inVPre) {
-        // 如果当前标签使用了v-pre指令，则element.pre = true
+        // 如果当前标签使用了v-pre指令，则element.pre为true
         processPre(element)
         if (element.pre) {
           inVPre = true
@@ -562,7 +562,7 @@ function processPre (el) {
   }
 }
 
-// 将el.attrsList数组的值，同步一份到el.attr上
+// 将pre标签及其子标签，对应的el.attrsList数组的值，同步一份到el.attr上
 function processRawAttrs (el) {
   const list = el.attrsList
   const len = list.length
@@ -580,13 +580,16 @@ function processRawAttrs (el) {
       }
     }
   } else if (!el.pre) {
-    // non root node in pre blocks with no attributes
+    // 含有v-pre指令的元素，el.pre为true，不会进入这里。只有其子元素才会进入此处
     /**
        解析span（v-pre指令的标签的子标签）时进入此处
        <div v-pre>
         <span></span>
        </div>
      */
+
+    // non root node in pre blocks with no attributes
+    // 将没有属性的pre子节点，标记plain为true，跳过genData的渲染
     el.plain = true
   }
 }
@@ -599,7 +602,8 @@ export function processElement (
 
   // determine whether this is a plain element after
   // removing structural attributes
-  // 在移除了结构相关的指令之后，没有使用key属性、slot属性、以及其他属性的标签，才会被认为是纯的
+  // TODO plain表示节点移除了结构相关指令之后，是否还有属性？
+  // TODO key、scopedSlots不在attrsList列表中，因此需要单独判断？
   // 结构化指令：v-for、v-if/v-else-if/v-else、v-once
   element.plain = (
     !element.key &&

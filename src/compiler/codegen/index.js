@@ -52,6 +52,7 @@ export function generate (
 ): CodegenResult {
   const state = new CodegenState(options)
   const code = ast ? genElement(ast, state) : '_c("div")'
+  // TODO 弄清动态、静态混合的html，是如何生成code的
   return {
     render: `with(this){return ${code}}`,
     staticRenderFns: state.staticRenderFns
@@ -94,9 +95,10 @@ export function genElement (el: ASTElement, state: CodegenState): string {
     } else {
       // 处理标签
       let data
-      // el.plain为true：1、v-pre标签的子标签；2、没有使用key属性、slot属性、以及其他属性（但可以使用结构相关的指令）的标签
-      // 处于v-pre块包裹下的自定义组件 TODO 这种情况只要原样展示就好，为什么要解析？
-      // https://github.com/vuejs/vue/issues/8286
+      // 有属性的标签。肯定要渲染对应的data
+      // 没属性的标签。
+      // 如果是普通的没属性标签，直接忽略genData，正常渲染即可
+      // 但如果是pre包裹下的自定义组件，不能跳过genData，因为需要生成{pre: true}来阻止其解析为组件
       if (!el.plain || (el.pre && state.maybeComponent(el))) {
         data = genData(el, state)
       }
@@ -124,7 +126,9 @@ function genStatic (el: ASTElement, state: CodegenState): string {
   // Some elements (templates) need to behave differently inside of a v-pre
   // node.  All pre nodes are static roots, so we can use this as a location to
   // wrap a state change and reset it upon exiting the pre node.
-  // 在<pre>标签中，<template>需要被渲染成html标签
+  // 在<pre>标签中，<template>应该像平常一样渲染，而不是被过滤掉
+  // TODO 目前的bug：当v-pre指令出现在根节点时，<template>正常渲染；当v-pre出现在非根节点时，<template>被过滤了
+  // https://github.com/vuejs/vue/issues/10717
   // https://github.com/vuejs/vue/issues/8041
   // 所有的pre节点都是静态根节点，所以可以将此作为位置，去包裹状态改变，并在退出pre节点时重置它
   const originalPreState = state.pre
@@ -133,6 +137,7 @@ function genStatic (el: ASTElement, state: CodegenState): string {
   }
   state.staticRenderFns.push(`with(this){return ${genElement(el, state)}}`)
   state.pre = originalPreState
+  // TODO 形如_m(0)是什么意思？
   return `_m(${
     state.staticRenderFns.length - 1
   }${
@@ -246,6 +251,7 @@ export function genFor (
     '})'
 }
 
+// 生成createElement函数的第二个参数，即data对象
 export function genData (el: ASTElement, state: CodegenState): string {
   let data = '{'
 
