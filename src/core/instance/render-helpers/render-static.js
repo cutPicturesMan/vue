@@ -11,10 +11,13 @@ export function renderStatic (
   let tree = cached[index]
   // if has already-rendered static tree and not inside v-for,
   // we can reuse the same tree.
+  // 如果已经渲染了静态树，并且该静态树不处于v-for中
+  // 可以重用相同的树
   if (tree && !isInFor) {
     return tree
   }
   // otherwise, render a fresh tree.
+  // 否则，渲染一个新树
   tree = cached[index] = this.$options.staticRenderFns[index].call(
     this._renderProxy,
     null,

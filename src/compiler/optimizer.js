@@ -8,9 +8,6 @@ let isPlatformReservedTag
 const genStaticKeysCached = cached(genStaticKeys)
 
 /**
- * 遍历ast树，查找静态子树，通过以下2点优化避免重新渲染静态子树的dom节点
- * 1、将静态子树提升为常量
- * 2、完全跳过patching处理过程
  * Goal of the optimizer: walk the generated template AST tree
  * and detect sub-trees that are purely static, i.e. parts of
  * the DOM that never needs to change.
@@ -20,6 +17,12 @@ const genStaticKeysCached = cached(genStaticKeys)
  * 1. Hoist them into constants, so that we no longer need to
  *    create fresh nodes for them on each re-render;
  * 2. Completely skip them in the patching process.
+ *
+ * 优化器目标：遍历生成的模板ast树，查找纯静态子树。即一部分dom永远不需要改变
+ *
+ * 一旦找这些静态子树，我们可以：
+ * 1、将静态子树提升为常量，这样我们就不再需要在每一个重新渲染中为其创建刷新节点
+ * 2、完全跳过patching处理过程
  */
 export function optimize (root: ?ASTElement, options: CompilerOptions) {
   if (!root) return
@@ -30,7 +33,8 @@ export function optimize (root: ?ASTElement, options: CompilerOptions) {
   // 第一步：标记所有非静态节点
   markStatic(root)
   // second pass: mark static roots.
-  // 第二步：为静态根节点做上标记
+  // 第二步：标记静态根节点
+  // ast树的根节点肯定没有v-for属性，因此这里是false
   markStaticRoots(root, false)
 }
 
@@ -63,6 +67,9 @@ function markStatic (node: ASTNode) {
     // do not make component slot content static. this avoids
     // 1. components not able to mutate slot nodes
     // 2. static slot content fails for hot-reloading
+    // 不要将组件的slot内容标记为静态，这样可以避免：
+    // 1、组件无法转变slot节点
+    // 2、热重载静态slot内容失败
 
     // 不需要通过子节点来判断当前节点是否为静态的情况
     if (
@@ -79,11 +86,11 @@ function markStatic (node: ASTNode) {
     ) {
       return
     }
-    // 递归设置非静态节点的static为false
+    // 判断子节点是否是静态
     for (let i = 0, l = node.children.length; i < l; i++) {
       const child = node.children[i]
       markStatic(child)
-      // 子节点非静态，那么父节点肯定也是非静态的
+      // 子节点非静态，当前节点要改为非静态
       if (!child.static) {
         node.static = false
       }
@@ -103,25 +110,10 @@ function markStatic (node: ASTNode) {
   }
 }
 
-/**
- 如果一个节点有且只有一个静态文本子节点，则不把该节点标记为静态根节点
- 处理该节点的开销会大于收益，还不如每次重新渲染
-
- <div>
-   <div>静态文本</div>
-   <div>
-     <p v-if="xxx"></p>
-     <p v-else-if="xxx"></p>
-     <p v-else></p>
-   </div>
- </div>
- * @param node
- * @param isInFor
- */
+// 将子元素都是静态元素的节点，打上"静态根节点"的标记
 function markStaticRoots (node: ASTNode, isInFor: boolean) {
   if (node.type === 1) {
-    // v-for循环中子节点如果是静态节点，则做标记
-    // <div v-for="i in 10"><span>hi</span></div>
+    // 该静态节点或v-once节点，如果处在v-for循环中，则做标记
     // https://github.com/vuejs/vue/issues/3406
     if (node.static || node.once) {
       node.staticInFor = isInFor
@@ -129,18 +121,21 @@ function markStaticRoots (node: ASTNode, isInFor: boolean) {
     // For a node to qualify as a static root, it should have children that
     // are not just static text. Otherwise the cost of hoisting out will
     // outweigh the benefits and it's better off to just always render it fresh.
+    // 如果一个节点只有一个静态文本子节点，则不把该节点标记为静态根节点
+    // 因为处理该节点的开销会大于收益，还不如每次重新渲染
+
     // 节点及其子节点都是静态的 && 节点含有子节点 && 子节点不是仅有的一个静态文本节点
     if (node.static && node.children.length && !(
       node.children.length === 1 &&
       node.children[0].type === 3
     )) {
       node.staticRoot = true
-      // 已经处理了我们想要处理的节点，则直接返回
+      // 该节点已经标记为静态根节点了，无需再处理其子元素
       return
     } else {
       node.staticRoot = false
     }
-    // 递归处理剩余的节点
+    // 递归判断子节点
     if (node.children) {
       for (let i = 0, l = node.children.length; i < l; i++) {
         markStaticRoots(node.children[i], isInFor || !!node.for)
