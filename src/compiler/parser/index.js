@@ -28,8 +28,8 @@ export const onRE = /^@|^v-on:/
 // :为v-bind的缩写
 // .修饰符新特性：https://github.com/vuejs/vue/issues/7582
 export const dirRE = process.env.VBIND_PROP_SHORTHAND
-  ? /^v-|^@|^:|^\./
-  : /^v-|^@|^:/
+  ? /^v-|^@|^:|^\.|^#/
+  : /^v-|^@|^:|^#/
 // 匹配v-for="item of list"，并提取字符串item、list
 // v-for是可以分成多行写的，[^]、[\s\S]都表示匹配任何字符（包括换行符），但是[^]IE不支持，会匹配到空值，因此使用[\s\S]
 // http://sjhannah.com/blog/2011/05/17/javascript-matching-all-characters-including-new-line/
@@ -859,7 +859,7 @@ function processSlotContent (el) {
           if (el.parent && !maybeComponent(el.parent)) {
             warn(
               `<template v-slot> can only appear at the root level inside ` +
-              `the receiving the component`,
+              `the receiving component`,
               el
             )
           }

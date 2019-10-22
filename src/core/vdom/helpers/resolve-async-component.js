@@ -75,6 +75,8 @@ export function resolveAsyncComponent (
     // 【同步流程】 sync标识设为同步 -> Promise() -> 同步Promise立刻执行 -> sync标识设为异步 -> 没有异步Promise执行
     // 【异步流程】 sync标识设为同步 -> Promise() -> 没有同步Promise执行 -> sync标识设为异步 -> 过一段时间，异步Promise执行
     let sync = true
+    let timerLoading = null
+    let timerTimeout = null
 
     ;(owner: any).$on('hook:destroyed', () => remove(owners, owner))
 
@@ -86,6 +88,14 @@ export function resolveAsyncComponent (
 
       if (renderCompleted) {
         owners.length = 0
+        if (timerLoading !== null) {
+          clearTimeout(timerLoading)
+          timerLoading = null
+        }
+        if (timerTimeout !== null) {
+          clearTimeout(timerTimeout)
+          timerTimeout = null
+        }
       }
     }
 
@@ -192,9 +202,10 @@ export function resolveAsyncComponent (
           if (res.delay === 0) {
             factory.loading = true
           } else {
-            setTimeout(() => {
-              // 上面的res.component.then有可能是立即resolve的，或者异步resolve的时间小于延迟渲染的时间
-              // 确保在延迟渲染时间过后，组件还未resolve/reject，这时才展示loading
+            // 上面的res.component.then有可能是立即resolve的，或者异步resolve的时间小于延迟渲染的时间
+            // 确保在延迟渲染时间过后，组件还未resolve/reject，这时才展示loading
+            timerLoading = setTimeout(() => {
+              timerLoading = null
               if (isUndef(factory.resolved) && isUndef(factory.error)) {
                 factory.loading = true
                 forceRender(false)
@@ -205,10 +216,11 @@ export function resolveAsyncComponent (
 
         // 如果超时，则设置为reject
         if (isDef(res.timeout)) {
-          setTimeout(() => {
-            // 超时 -> 已经resolve -> 不再reject
-            //     -> 还未resolve -> 已reject -> reject（该函数只会触发一次）
-            //                   -> 未reject -> reject
+          // 超时 -> 已经resolve -> 不再reject
+          //     -> 还未resolve -> 已reject -> reject（该函数只会触发一次）
+          //                   -> 未reject -> reject
+          timerTimeout = setTimeout(() => {
+            timerTimeout = null
             if (isUndef(factory.resolved)) {
               reject(
                 process.env.NODE_ENV !== 'production'
