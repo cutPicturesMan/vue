@@ -6,7 +6,7 @@ import { parseFilters } from './filter-parser'
 // https://github.com/vuejs/vue/issues/8103
 const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
 const regexEscapeRE = /[-.*+?^${}()|[\]\/\\]/g
-
+ 
 // 由于需要通过new RegExp()构建新的正则表达式，因此需要为自定义的定界符添加转义符号"\"
 // ${xxx} -> \$\{xxx\}
 const buildRegex = cached(delimiters => {

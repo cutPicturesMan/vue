@@ -113,7 +113,7 @@ function markStatic (node: ASTNode) {
 // 将子元素都是静态元素的节点，打上"静态根节点"的标记
 function markStaticRoots (node: ASTNode, isInFor: boolean) {
   if (node.type === 1) {
-    // 该静态节点或v-once节点，如果处在v-for循环中，则做标记
+    // 如果是静态节点或v-once节点，需要判断是否处在v-for循环中，防止重用导致问题
     // https://github.com/vuejs/vue/issues/3406
     if (node.static || node.once) {
       node.staticInFor = isInFor
@@ -187,8 +187,6 @@ function isStatic (node: ASTNode): boolean {
  * 2、<template v-for="item in list">
  *      <template><div>child</div></template>
  *    </template>
- * @param node
- * @returns {boolean}
  */
 function isDirectChildOfTemplateFor (node: ASTElement): boolean {
   while (node.parent) {

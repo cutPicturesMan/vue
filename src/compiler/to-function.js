@@ -51,9 +51,13 @@ export function createCompileToFunctionFn (compile: Function): Function {
     }
 
     // check cache
+    // https://cn.vuejs.org/v2/api/#delimiters
     const key = options.delimiters
       // options.delimiters为数组，先调用数组的valueOf()方法，数组的valueOf()方法经过重写返回的是数组本身，不是基本值，转而调用toString()方法
       // 数组的默认toString()方法经过了重新定义，将所有单元字符串化以后再用","连接起来
+      // 对象（包括数组）转为字符串的过程：
+      // 1、如果值有valueOf()方法并且返回基本类型值，就使用该值进行强制类型转换；如果没有，就使用toString()的返回值来进行强制类型转换
+      // 将delimiters数组转为逗号分隔的字符串：
       ? String(options.delimiters) + template
       : template
     if (cache[key]) {
