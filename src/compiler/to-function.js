@@ -21,6 +21,7 @@ function createFunction (code, errors) {
 export function createCompileToFunctionFn (compile: Function): Function {
   const cache = Object.create(null)
 
+  // Vue.compile = compileToFunctions
   return function compileToFunctions (
     template: string,
     options?: CompilerOptions,
