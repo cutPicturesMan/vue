@@ -23,6 +23,7 @@ export function createCompilerCreator (baseCompile: Function): Function {
       if (options) {
         if (process.env.NODE_ENV !== 'production' && options.outputSourceRange) {
           // $flow-disable-line
+          // 前导空格
           const leadingSpaceLength = template.match(/^\s*/)[0].length
 
           warn = (msg, range, tip) => {
