@@ -21,6 +21,7 @@ const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
 /**
  * In some cases we may want to disable observation inside a component's
  * update computation.
+ * 在某些情况下，我们可能需要禁止观察者，例如在组件的update计算中
  */
 export let shouldObserve: boolean = true
 
@@ -33,6 +34,9 @@ export function toggleObserving (value: boolean) {
  * object. Once attached, the observer converts the target
  * object's property keys into getter/setters that
  * collect dependencies and dispatch updates.
+ * 观察者类附加到每个被观察的对象上
+ * 一旦附加上，观察者会将目标对象的属性key值转为getter/setter
+ * 以便用来收集依赖和广播更新
  */
 export class Observer {
   value: any;
@@ -125,12 +129,12 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  */
 // 尝试为一个任意值创建观察者模式，返回observer实例
 export function observe (value: any, asRootData: ?boolean): Observer | void {
-  // 只有对象或者数组，才会执行本函数
+  // 只有对象或者虚拟dom节点，才会执行本函数
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   let ob: Observer | void
-  // 如果该值已经创建了观察者，则返回observer实例
+  // 如果该值已经创建了观察者（存在__ob__属性 && 该属性继承自Observer类），则返回observer实例
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
