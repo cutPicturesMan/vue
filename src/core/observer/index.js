@@ -127,21 +127,24 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
  */
-// 尝试为一个任意值创建观察者模式，返回observer实例
+// 尝试为对象或者虚拟dom节点创建观察者模式，返回observer实例
 export function observe (value: any, asRootData: ?boolean): Observer | void {
   // 只有对象或者虚拟dom节点，才会执行本函数
   if (!isObject(value) || value instanceof VNode) {
     return
   }
   let ob: Observer | void
-  // 如果该值已经创建了观察者（存在__ob__属性 && 该属性继承自Observer类），则返回observer实例
+  // 如果该值已经创建了观察者（存在__ob__属性 && 该属性继承自Observer类，避免__ob__属性是随意添加），则返回observer实例
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
+    // TODO 对象、虚拟dom哪些时候是不应该observe的？
     shouldObserve &&
+    // TODO 服务器渲染为啥不要observe？
     !isServerRendering() &&
     (Array.isArray(value) || isPlainObject(value)) &&
     Object.isExtensible(value) &&
+    // TODO 为啥要特意避免根节点
     !value._isVue
   ) {
     ob = new Observer(value)

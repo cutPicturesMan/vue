@@ -38,6 +38,8 @@ export function isPrimitive (value: any): boolean %checks {
  * Quick object check - this is primarily used to tell
  * Objects from primitive values when we know the value
  * is a JSON-compliant type.
+ * 快速对象检测，主要用于区别对象和基本类型值
+ * 待检测值的类型为符合JSON序列化的类型
  */
 export function isObject (obj: mixed): boolean %checks {
   return obj !== null && typeof obj === 'object'
@@ -60,7 +62,7 @@ export function toRawType (value: any): string {
  * 严格对象类型检测，只有是纯对象{}时，才会返回true。诸如[]、正则表达式都是返回false
  *
  * 这里要调用Object.prototype.toString才会返回[object ***]，不能用obj.toString()
- * 因为toString()会被目标对象obj重写，例如([]).toString()返回的是空字符串，
+ * 因为toString()会被目标对象obj重写，例如([]).toString()返回的是空字符串
  */
 export function isPlainObject (obj: any): boolean {
   return _toString.call(obj) === '[object Object]'
