@@ -147,11 +147,11 @@ export function eventsMixin (Vue: Class<Component>) {
     }
     let cbs = vm._events[event]
     if (cbs) {
-      // TODO 为什么要判断长度？
-      // TODO 这里我个人认为不需要，应该去掉
+      // 假设$once为某个事件添加的回调函数超过1个，如vm._events['submit'] = [fn1, fn2]
+      // 在$emit触发$once，按顺序执行回调函数数组之前，会先将当前函数从vm._events['submit']中移除掉，这就导致vm._events['submit']数组中的fn1被移除，fn2跑到fn1的位置上，导致fn2直接被跳过
+      // 因此在回调函数数量超过1个的情况下，需要复制一份回调函数数组，切断与原来的联系，保证其稳定性
       cbs = cbs.length > 1 ? toArray(cbs) : cbs
       // TODO 这里用toArray和Array.prototype.slice.call(arguments, 1)的区别？
-      // https://github.com/vuejs/vue/pull/9286
       const args = toArray(arguments, 1)
       const info = `event handler for "${event}"`
       for (let i = 0, l = cbs.length; i < l; i++) {
