@@ -56,12 +56,13 @@ export function eventsMixin (Vue: Class<Component>) {
   const hookRE = /^hook:/
   Vue.prototype.$on = function (event: string | Array<string>, fn: Function): Component {
     const vm: Component = this
+    // 1、添加多个事件的单个回调函数
     if (Array.isArray(event)) {
       for (let i = 0, l = event.length; i < l; i++) {
         vm.$on(event[i], fn)
       }
     } else {
-      // 将事件添加到总事件对象上，单个事件可以使用$on添加多个处理函数
+      // 2、添加单个事件的单个回调函数
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
@@ -89,13 +90,13 @@ export function eventsMixin (Vue: Class<Component>) {
   Vue.prototype.$off = function (event?: string | Array<string>, fn?: Function): Component {
     const vm: Component = this
     // all
-    // 如果没有指定任何参数，则移除所有事件
+    // 1、移除所有事件
     if (!arguments.length) {
       vm._events = Object.create(null)
       return vm
     }
     // array of events
-    // 如果是数组，则逐个移除
+    // 2、移除多个事件
     if (Array.isArray(event)) {
       for (let i = 0, l = event.length; i < l; i++) {
         vm.$off(event[i], fn)
@@ -103,22 +104,21 @@ export function eventsMixin (Vue: Class<Component>) {
       return vm
     }
     // specific event
+    // 3、移除指定单个事件
     const cbs = vm._events[event]
-    // 如果没有找到指定事件的函数集合，则返回
+    // 待移除的单个事件有可能不存在，则直接返回
     if (!cbs) {
       return vm
     }
-    // 如果没有指定解绑具体的事件处理函数，那么就解绑该事件下所有的处理函数
-    // 这里不能用arguments.length === 1来作为判断条件，因为在事件数组的循环中，fn是有值的，为undefined
-    // https://github.com/vuejs/vue/issues/6945
+    // 3.1、移除指定单个事件下的所有事件处理函数
     if (!fn) {
       vm._events[event] = null
       return vm
     }
     // specific handler
+    // 3.2、移除指定单个事件下的某个事件处理函数
     let cb
     let i = cbs.length
-    // 循环指定事件的函数集合，移除指定的事件处理函数
     while (i--) {
       cb = cbs[i]
       if (cb === fn || cb.fn === fn) {
@@ -151,7 +151,6 @@ export function eventsMixin (Vue: Class<Component>) {
       // 在$emit触发$once，按顺序执行回调函数数组之前，会先将当前函数从vm._events['submit']中移除掉，这就导致vm._events['submit']数组中的fn1被移除，fn2跑到fn1的位置上，导致fn2直接被跳过
       // 因此在回调函数数量超过1个的情况下，需要复制一份回调函数数组，切断与原来的联系，保证其稳定性
       cbs = cbs.length > 1 ? toArray(cbs) : cbs
-      // TODO 这里用toArray和Array.prototype.slice.call(arguments, 1)的区别？
       const args = toArray(arguments, 1)
       const info = `event handler for "${event}"`
       for (let i = 0, l = cbs.length; i < l; i++) {
