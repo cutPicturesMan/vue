@@ -246,6 +246,7 @@ export function toArray (list: any, start?: number): Array<any> {
  * Mix properties into target object.
  */
 // 将指定对象的实例和原型上的可枚举属性，添加到目标对象上
+// TODO 正常对象属性访问顺序：对象实例上的属性 -> 不存在，则访问对象原型上的同名属性。如果使用Object.assign()复制，则会丢失原型链上的属性
 export function extend (to: Object, _from: ?Object): Object {
   for (const key in _from) {
     to[key] = _from[key]

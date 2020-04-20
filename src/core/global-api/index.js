@@ -49,6 +49,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
   Vue.delete = del
   Vue.nextTick = nextTick
 
+  // TODO 为什么Vue.options要默认包含components、directives、filters、_base？
   /** 经过以下几个步骤，Vue.options从{}变为：
    Vue.options = {
       components: {
