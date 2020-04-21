@@ -532,11 +532,8 @@ export function mergeOptions (
     }
   }
 
-  // TODO 这里是属性的替换，那么属性的合并在哪里？Vue.mixin(options)添加的属性与new Vue(options)的属性重复时，在哪里合并的？
-
   // 以下步骤实际上相当于Object.assign({}, parent, child)
-  // 这里不用Object.assign()的原因，是因为在每个属性合并过程中，需要对合并方法进行特殊处理：用户可以自定义，没有自定义则采用默认方法
-  // 因此这里要手动合并parent、child的所有属性
+  // 但是由于options的每一个属性的合成方式不同，因此这里不能用Object.assign()，需要进行定制，因此要手动合并parent、child的所有属性
   const options = {}
   let key
 
