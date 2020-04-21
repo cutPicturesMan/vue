@@ -532,16 +532,22 @@ export function mergeOptions (
     }
   }
 
+  // TODO 这里是属性的替换，那么属性的合并在哪里？Vue.mixin(options)添加的属性与new Vue(options)的属性重复时，在哪里合并的？
+
+  // 以下步骤实际上相当于Object.assign({}, parent, child)
+  // 这里不用Object.assign()的原因，是因为在每个属性合并过程中，需要对合并方法进行特殊处理：用户可以自定义，没有自定义则采用默认方法
+  // 因此这里要手动合并parent、child的所有属性
   const options = {}
   let key
-  // 先循环父option对象的属性，将其独有的属性、与子option共有的属性合并到options上
-  // TODO 这里还需要加上FireFox下Object.prototype.watch的解释
+
+  // 1、先处理parent的属性
   for (key in parent) {
     mergeField(key)
   }
+  // 2、再处理child独有的属性
   for (key in child) {
-    // 子option对象的属性不在父option上，则表示是其单独的属性，需要合并到options上
-    // 共有的属性已经合并了
+    // 这里只能用hasOwn判断属性是否在对象实例上，而不能用in同时判断属性是否在对象实例和对象原型上
+    // 因为旧版Firefox原生提供了Object.prototype.watch函数，child含有watch属性时，使用in会导致该属性直接被跳过
     if (!hasOwn(parent, key)) {
       mergeField(key)
     }
