@@ -10,7 +10,7 @@ import {
 import { updateListeners } from '../vdom/helpers/index'
 
 export function initEvents (vm: Component) {
-  // 总体事件对象
+  // 将总事件对象设置为没有原型链的对象，防止误访问到原型链上的同名属性
   vm._events = Object.create(null)
   vm._hasHookEvent = false
   // init parent attached events
@@ -81,7 +81,8 @@ export function eventsMixin (Vue: Class<Component>) {
       vm.$off(event, on)
       fn.apply(vm, arguments)
     }
-    // 把fn挂到on函数上，才能知道需要解绑的是哪个事件处理函数
+    // $once使用on函数重写了fn函数
+    // 因此需要把fn挂到on函数上，才能在$off传入指定的函数参数时，匹配到原始函数
     on.fn = fn
     vm.$on(event, on)
     return vm
@@ -121,6 +122,7 @@ export function eventsMixin (Vue: Class<Component>) {
     let i = cbs.length
     while (i--) {
       cb = cbs[i]
+      // $on添加的函数 || $once添加的函数
       if (cb === fn || cb.fn === fn) {
         cbs.splice(i, 1)
         break

@@ -487,7 +487,7 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
  * Core utility used in both instantiation and inheritance.
  */
 // 将两个option对象合并为一个，在new Vue()、Vue.extend、Vue.mixin时使用
-// 仅在new Vue()时会传入第三个参数，其余不会
+// 第三个参数仅在new Vue()时会传入，其余不会
 export function mergeOptions (
   parent: Object,
   child: Object,
@@ -540,7 +540,6 @@ export function mergeOptions (
       mergeField(key)
     }
   }
-  // TODO 在一个函数内部声明函数，与在外部声明函数的区别？
   function mergeField (key) {
     // 如果key在config.optionMergeStrategies上配置了对应的策略函数，则使用该函数
     // 否则使用默认的策略函数

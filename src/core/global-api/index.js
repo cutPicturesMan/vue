@@ -44,7 +44,7 @@ export function initGlobalAPI (Vue: GlobalAPI) {
     defineReactive
   }
 
-  // TODO 这3个方法不是在prototype上添加了吗？为什么要添加到vue实例上？
+  // TODO 这3个方法不是在prototype上添加了吗？为什么要添加到vue构造函数上？
   Vue.set = set
   Vue.delete = del
   Vue.nextTick = nextTick

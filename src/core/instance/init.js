@@ -12,6 +12,19 @@ import { extend, mergeOptions, formatComponentName } from '../util/index'
 
 let uid = 0
 
+/**
+ 1、构造函数 -> 构造函数的原型模式  6、面向对象1.md p252
+ 2、/es6/this.md new绑定 p164：
+ * 2.1、2种this的判断：
+   ->Vue.prototype._init中的this指向new Vue()创建出来的对象
+   ->Vue.mixin函数中的this指向Vue构造函数
+ 【this的其他判断参考】https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/this
+ * 2.2 Vue对象的constructor指向Vue构造函数
+ 3、通过第二步，可以得知我们现在拥有2个东西
+ * Vue对象，规定其内部属性前需加上$符号
+ * Vue构造函数，其属性用来挂载全局方法？TODO 为什么Vue中的三个全局方法component、directive、filter是挂载在Vue.options上？
+ */
+
 export function initMixin (Vue: Class<Component>) {
   Vue.prototype._init = function (options?: Object) {
     const vm: Component = this
@@ -33,7 +46,7 @@ export function initMixin (Vue: Class<Component>) {
     // 表明本对象是vue实例，而非普通的对象
     vm._isVue = true
     // merge options
-    // 如果是vue组件
+    // 如果是vue组件，Vue.component或者options.components创建的组件
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
@@ -43,6 +56,7 @@ export function initMixin (Vue: Class<Component>) {
       initInternalComponent(vm, options)
     } else {
       // 将options的多种情况，比如props的多种传参方式，转变为固定的一种
+      // TODO 在new Vue()、Vue.extend、Vue.mixin时？
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         // options为透传进来的参数。当new Vue()用于event Bus的时候，options为空
