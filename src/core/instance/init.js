@@ -58,6 +58,7 @@ export function initMixin (Vue: Class<Component>) {
       // 将options的多种情况，比如props的多种传参方式，转变为固定的一种
       // TODO 在new Vue()、Vue.extend、Vue.mixin时？
       vm.$options = mergeOptions(
+        // 获取Vue.options，默认为 { components, directives, filters, _base: Vue }
         resolveConstructorOptions(vm.constructor),
         // options为透传进来的参数。当new Vue()用于event Bus的时候，options为空
         options || {},

@@ -204,6 +204,7 @@ function mergeHook (
 
  const vm = new Child()
  */
+// TODO 看下 fix(core): dedupe lifecycle hooks during options merge
 function dedupeHooks (hooks) {
   const res = []
   for (let i = 0; i < hooks.length; i++) {
@@ -398,8 +399,8 @@ function normalizeProps (options: Object, vm: ?Component) {
     for (const key in props) {
       val = props[key]
       name = camelize(key)
+      // props属性是一个对象，则保持原样
       res[name] = isPlainObject(val)
-        // props属性是一个对象，则保持原样
         ? val
         // 否则赋值给type
         : { type: val }
@@ -435,15 +436,18 @@ function normalizeInject (options: Object, vm: ?Component) {
   const inject = options.inject
   if (!inject) return
   const normalized = options.inject = {}
+  // 1、inject为数组形式
   if (Array.isArray(inject)) {
     for (let i = 0; i < inject.length; i++) {
       normalized[inject[i]] = { from: inject[i] }
     }
   } else if (isPlainObject(inject)) {
+    // 2、inject为对象形式
     for (const key in inject) {
       const val = inject[key]
       normalized[key] = isPlainObject(val)
-        // TODO from是必传参数？所以这里要设置一下默认的from？
+        // inject属性值为对象，则设置对象的from默认为当前属性的key值。可以允许改成其他key值
+        // 这里要把对象原型链上的属性也拷贝过去，因为原型链上的属性也是可以访问到的
         ? extend({ from: key }, val)
         : { from: val }
     }
@@ -498,8 +502,8 @@ export function mergeOptions (
     checkComponents(child)
   }
 
-  // TODO child有可能是Vue构造函数以及Vue.extend创造出来的子类？
-  // TODO https://github.com/vuejs/vue/issues/9198
+  // 处理这种情况：Vue.extend()创建的子类Function，作为Vue.mixin()的参数
+  // 该情况见test/unit/features/global-api/mixin.spec.js vue-class-component#83
   if (typeof child === 'function') {
     child = child.options
   }
@@ -512,9 +516,11 @@ export function mergeOptions (
   // but only if it is a raw options object that isn't
   // the result of another mergeOptions call.
   // Only merged options has the _base property.
-  // 处理未合并过的option对象
-  // 只有已合并的options，才有_base属性
-  // TODO https://github.com/vuejs/vue/issues/8865
+  // TODO https://github.com/vuejs/vue/issues/8865，看完Vue.extend()再来看这里
+  // 处理未合并过的option对象，防止已合并的options重复合并
+  // 只有已合并的options，才有_base属性：
+  // /src/core/global-api/index.js将Vue.options._base的值设置为Vue构造函数
+  // 在Vue中，Vue.mixin(options)、new Vue(options)都会与Vue.options进行合并，因此可以借_base属性判断该options是否合并过
   if (!child._base) {
     if (child.extends) {
       parent = mergeOptions(parent, child.extends, vm)
