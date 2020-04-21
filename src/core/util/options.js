@@ -28,15 +28,49 @@ import {
  */
 // 自定义合并策略的对象
 // https://cn.vuejs.org/v2/api/#optionMergeStrategies
+/**
+ {
+  // options相关
+  el: ƒ (parent, child, vm, key)
+  props: ƒ ( parentVal, childVal, vm, key )
+  data: ƒ ( parentVal, childVal, vm )
+  watch: ƒ ( parentVal, childVal, vm, key )
+  computed: ƒ ( parentVal, childVal, vm, key )
+  methods: ƒ ( parentVal, childVal, vm, key )
+
+  components: ƒ mergeAssets( parentVal, childVal, vm, key )
+  directives: ƒ mergeAssets( parentVal, childVal, vm, key )
+  filters: ƒ mergeAssets( parentVal, childVal, vm, key )
+
+  provide: ƒ mergeDataOrFn( parentVal, childVal, vm )
+  inject: ƒ ( parentVal, childVal, vm, key )
+  propsData: ƒ (parent, child, vm, key)
+
+  // 生命周期相关
+  beforeCreate: ƒ mergeHook( parentVal, childVal )
+  created: ƒ mergeHook( parentVal, childVal )
+  beforeMount: ƒ mergeHook( parentVal, childVal )
+  mounted: ƒ mergeHook( parentVal, childVal )
+  beforeUpdate: ƒ mergeHook( parentVal, childVal )
+  updated: ƒ mergeHook( parentVal, childVal )
+  beforeDestroy: ƒ mergeHook( parentVal, childVal )
+  destroyed: ƒ mergeHook( parentVal, childVal )
+
+  activated: ƒ mergeHook( parentVal, childVal )
+  deactivated: ƒ mergeHook( parentVal, childVal )
+  errorCaptured: ƒ mergeHook( parentVal, childVal )
+
+  serverPrefetch: ƒ mergeHook( parentVal, childVal )
+}
+  */
 const strats = config.optionMergeStrategies
 
 /**
  * Options with restrictions
  */
-// 非生产环境下进行提示
+// el和propsData这两个属性，只能在new Vue的时候使用，不能在子组件中使用
 // TODO 生产环境下el、propsData的处理函数为undefined，同样走defaultStrat。此时的值以子组件为主，有没有问题？
 if (process.env.NODE_ENV !== 'production') {
-  // el和propsData这两个属性，只能在new Vue的时候使用，不能在子组件中使用
   strats.el = strats.propsData = function (parent, child, vm, key) {
     if (!vm) {
       warn(
@@ -508,6 +542,7 @@ export function mergeOptions (
     child = child.options
   }
 
+  // TODO 为什么这些属性需要normalize，其他不需要吗？
   normalizeProps(child, vm)
   normalizeInject(child, vm)
   normalizeDirectives(child)
