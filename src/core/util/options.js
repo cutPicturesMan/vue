@@ -356,7 +356,7 @@ strats.computed = function (
   }
   // 父级不存在，直接返回子级
   if (!parentVal) return childVal
-  // TODO 这里为何直接将父级options的所有属性直接放到ret对象上，而上面的mergeAssets处理时是将父级options藏到原型链上？
+  // TODO 为何不用{}？
   const ret = Object.create(null)
   // TODO 为什么不用Object.assign({}, parentVal)，是为了赋值parentVal原型链上的自定义属性？
   // TODO 看下对象的深浅拷贝
