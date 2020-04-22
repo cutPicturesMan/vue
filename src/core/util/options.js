@@ -278,7 +278,10 @@ function mergeAssets (
   vm?: Component,
   key: string
 ): Object {
-  // TODO 这里为何要将parentVal藏到原型上，而不是用Object.assign({}, parentVal || {})？
+  // 这里一定要用原型继承的方式，而不能用Object.assign({}, parentVal || {})
+  // 因为components查找组件时，会先查找当前对象实例上的组件的各种大小写名称，找不到时才会通过原型链向上查找
+  // 如果直接进行合并，有可能会导致直接找到父级上的组件
+  // 当前：components: { Test: xxx }  父级：components: { test: xxx }，假设子集找test组件时，如果直接合并就会使用父级上的组件
   const res = Object.create(parentVal || null)
   if (childVal) {
     process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)
@@ -355,7 +358,8 @@ strats.computed = function (
   if (!parentVal) return childVal
   // TODO 这里为何直接将父级options的所有属性直接放到ret对象上，而上面的mergeAssets处理时是将父级options藏到原型链上？
   const ret = Object.create(null)
-  // TODO 为什么不用Object.assign({}, parentVal)，是为了保留parentVal原型链上的自定义属性？
+  // TODO 为什么不用Object.assign({}, parentVal)，是为了赋值parentVal原型链上的自定义属性？
+  // TODO 看下对象的深浅拷贝
   extend(ret, parentVal)
   // 父子同时存在，则用子级覆盖父级
   if (childVal) extend(ret, childVal)
@@ -553,7 +557,9 @@ export function mergeOptions (
     child = child.options
   }
 
-  // TODO 为什么这些属性需要normalize，其他不需要吗？
+  // 这些属性之所以需要normalize，要从倒推的角度去看
+  // options的每个属性都有合并的策略，有些属性的合并策略是相同的，但是其属性值由于用户可以传入多种类型导致无法共用合并策略（这里要先讲解合并策略）
+  // 因此这里需要进行normalize，把属性值统一为一种
   normalizeProps(child, vm)
   normalizeInject(child, vm)
   normalizeDirectives(child)
@@ -650,6 +656,7 @@ export function resolveAsset (
   const assets = options[type]
   // check local registration variations first
   // 在options.components对象本身上依次查找：my-component -> myComponent -> MyComponent
+  // 要先找对象实例上的组件多种名称，实在找不到再去原型链上找
   // my-component
   if (hasOwn(assets, id)) return assets[id]
   // myComponent
