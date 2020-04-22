@@ -30,23 +30,20 @@ import {
 // https://cn.vuejs.org/v2/api/#optionMergeStrategies
 /**
  {
-  // options相关
+  // 默认合并策略：defaultStrat
   el: ƒ (parent, child, vm, key)
-  props: ƒ ( parentVal, childVal, vm, key )
+  propsData: ƒ (parent, child, vm, key)
+
+  // 需要特殊处理的合并方式：
+  // 1、
   data: ƒ ( parentVal, childVal, vm )
-  watch: ƒ ( parentVal, childVal, vm, key )
+
+  // 2、
+  props: ƒ ( parentVal, childVal, vm, key )
   computed: ƒ ( parentVal, childVal, vm, key )
   methods: ƒ ( parentVal, childVal, vm, key )
 
-  components: ƒ mergeAssets( parentVal, childVal, vm, key )
-  directives: ƒ mergeAssets( parentVal, childVal, vm, key )
-  filters: ƒ mergeAssets( parentVal, childVal, vm, key )
-
-  provide: ƒ mergeDataOrFn( parentVal, childVal, vm )
-  inject: ƒ ( parentVal, childVal, vm, key )
-  propsData: ƒ (parent, child, vm, key)
-
-  // 生命周期相关
+  // 3、生命周期相关，都用mergeHook函数处理
   beforeCreate: ƒ mergeHook( parentVal, childVal )
   created: ƒ mergeHook( parentVal, childVal )
   beforeMount: ƒ mergeHook( parentVal, childVal )
@@ -61,6 +58,19 @@ import {
   errorCaptured: ƒ mergeHook( parentVal, childVal )
 
   serverPrefetch: ƒ mergeHook( parentVal, childVal )
+
+  // 暂时不讲解系列：
+  // 4、公共方法，放到公共方法章节讲解
+  components: ƒ mergeAssets( parentVal, childVal, vm, key )
+  directives: ƒ mergeAssets( parentVal, childVal, vm, key )
+  filters: ƒ mergeAssets( parentVal, childVal, vm, key )
+
+  // 5、放到Observer章节讲解
+  watch: ƒ ( parentVal, childVal, vm, key )
+
+  // 6、放到对应章节讲解
+  provide: ƒ mergeDataOrFn( parentVal, childVal, vm )
+  inject: ƒ ( parentVal, childVal, vm, key )
 }
   */
 const strats = config.optionMergeStrategies
@@ -68,10 +78,11 @@ const strats = config.optionMergeStrategies
 /**
  * Options with restrictions
  */
-// el和propsData这两个属性，只能在new Vue的时候使用，不能在子组件中使用
-// TODO 生产环境下el、propsData的处理函数为undefined，同样走defaultStrat。此时的值以子组件为主，有没有问题？
+// 生产环境下el、propsData的处理函数为undefined，走默认的合并策略defaultStrat
 if (process.env.NODE_ENV !== 'production') {
   strats.el = strats.propsData = function (parent, child, vm, key) {
+    // el和propsData这两个属性，只能在new Vue()的时候使用
+    // 在其他地方使用需要进行错误提示，例如Vue.mixin()、Vue.extend()
     if (!vm) {
       warn(
         `option "${key}" can only be used during instance ` +
@@ -260,15 +271,14 @@ LIFECYCLE_HOOKS.forEach(hook => {
  * a three-way merge between constructor options, instance
  * options and parent options.
  */
+// 合并父子options上的components、directives、filters属性
 function mergeAssets (
   parentVal: ?Object,
   childVal: ?Object,
   vm?: Component,
   key: string
 ): Object {
-  // TODO 这里为什么不用Object.assign({}, parentVal || {})，而是要生成一个以parentVal为原型的对象res？
-  // TODO Object.assign和Object.create的区别
-  // TODO 对象深复制
+  // TODO 这里为何要将parentVal藏到原型上，而不是用Object.assign({}, parentVal || {})？
   const res = Object.create(parentVal || null)
   if (childVal) {
     process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)
@@ -343,8 +353,9 @@ strats.computed = function (
   }
   // 父级不存在，直接返回子级
   if (!parentVal) return childVal
-  // TODO 为什么不用Object.assign({}, parentVal)
+  // TODO 这里为何直接将父级options的所有属性直接放到ret对象上，而上面的mergeAssets处理时是将父级options藏到原型链上？
   const ret = Object.create(null)
+  // TODO 为什么不用Object.assign({}, parentVal)，是为了保留parentVal原型链上的自定义属性？
   extend(ret, parentVal)
   // 父子同时存在，则用子级覆盖父级
   if (childVal) extend(ret, childVal)
