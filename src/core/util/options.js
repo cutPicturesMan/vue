@@ -96,7 +96,7 @@ if (process.env.NODE_ENV !== 'production') {
 /**
  * Helper that recursively merges two data objects together.
  */
-// 将from的属性合并到to中
+// 将from对象的属性合并到to对象中
 function mergeData (to: Object, from: ?Object): Object {
   if (!from) return to
   let key, toVal, fromVal
@@ -130,22 +130,26 @@ function mergeData (to: Object, from: ?Object): Object {
 /**
  * Data
  */
-// Q mergeDataOrFn为什么返回函数，而不是合并之后的值？
-// A 因为data中有可能会用到props来赋值数据，因此需要在props初始化完毕后再进行合并
+// options.data、options.provide的策略函数
+/**
+ TODO 讲解顺序：
+ -> 全局data、局部data引出函数形式和对象形式的区别
+ -> 函数形式有可能引用到props，需要延迟合并，等props初始化完毕再合并，所以mergeDataOrFn返回一个函数，在initData时才调用该函数合并
+ */
 export function mergeDataOrFn (
   parentVal: any,
   childVal: any,
   vm?: Component
 ): ?Function {
-  // 在vue子组件中
+  // 全局options.data
   if (!vm) {
     // in a Vue.extend merge, both should be functions
-    // 直接返回的parentVal函数和childVal函数，在初始化时会进行作用域绑定
-    // 当子data不存在时，就不需要合并，直接返回父data函数
+    // 父子data要么一个存在另一个不存在，要么都存在，才会走到本函数中，因此有以下3种情况
+    // 1、子data不存在，父data存在，直接返回父data函数
     if (!childVal) {
       return parentVal
     }
-    // 当父data不存在时，此时子data肯定存在，返回子data函数
+    // 1、父data不存在，子data存在，直接返回子data函数
     if (!parentVal) {
       return childVal
     }
@@ -154,13 +158,16 @@ export function mergeDataOrFn (
     // merged result of both functions... no need to
     // check if parentVal is a function here because
     // it has to be a function to pass previous merges.
-    // TODO 为什么父data一定是函数形式？以及这个issue：https://github.com/vuejs/vue/pull/6025
+    // 父data在成为父data之前，其本身也作为子data被处理过，因此一定是函数
 
     // 当父data和子data都存在时，返回一个函数
     // 执行该函数会返回了父子data合并之后的值
     return function mergedDataFn () {
       return mergeData(
+        // TODO 这里由于与provide共用，provide有可能不是函数，因此要判断一下
+        // https://github.com/vuejs/vue/pull/6025
         typeof childVal === 'function' ? childVal.call(this, this) : childVal,
+        // TODO https://github.com/vuejs/vue/pull/6175
         typeof parentVal === 'function' ? parentVal.call(this, this) : parentVal
       )
     }
@@ -170,7 +177,7 @@ export function mergeDataOrFn (
       const instanceData = typeof childVal === 'function'
         ? childVal.call(vm, vm)
         : childVal
-      // TODO parentVal什么时候为函数？
+      // TODO https://github.com/vuejs/vue/pull/6473
       const defaultData = typeof parentVal === 'function'
         ? parentVal.call(vm, vm)
         : parentVal
@@ -188,9 +195,11 @@ strats.data = function (
   childVal: any,
   vm?: Component
 ): ?Function {
+  // options.data分为局部data和全局data
+  // 全局data走这里，即Vue.mixin、Vue.component、Vue.extend
   if (!vm) {
-    // 如果子组件的data不是一个函数，则提示
-    // 并且直接将父组件的data作为合并后的data
+    // 全局data属性必须是一个函数，只有这样每个实例才可以维护一份被返回对象的独立的拷贝
+    // 如果全局data不是一个函数，则提示，并且直接将父级data作为合并后的data返回
     if (childVal && typeof childVal !== 'function') {
       process.env.NODE_ENV !== 'production' && warn(
         'The "data" option should be a function ' +
@@ -204,7 +213,8 @@ strats.data = function (
     return mergeDataOrFn(parentVal, childVal)
   }
 
-  // 传入vm表示是Vue构造函数，而非子组件
+  // 局部options.data走到这里，即new调用Vue或Vue子类时传入的options.data、options.mixins.data、options.extends.data
+  // parentVal肯定是函数或者undefined
   return mergeDataOrFn(parentVal, childVal, vm)
 }
 
@@ -232,7 +242,7 @@ function mergeHook (
 }
 
 /**
- * 过滤掉由Vue.mixin()带来重复的生命周期钩子
+ * 在options合并过程中，不应该重复合并全局mixin中的生命周期钩子函数
  * 下例未过滤前created执行2次，过滤后created执行1次
  Vue.mixin({
     created() {
@@ -249,7 +259,6 @@ function mergeHook (
 
  const vm = new Child()
  */
-// TODO 看下 fix(core): dedupe lifecycle hooks during options merge
 function dedupeHooks (hooks) {
   const res = []
   for (let i = 0; i < hooks.length; i++) {
@@ -301,7 +310,8 @@ ASSET_TYPES.forEach(function (type) {
  * Watchers hashes should not overwrite one
  * another, so we merge them as arrays.
  */
-// 父子watch合并时，不应该互相重写，因此将父子watch的每个key合并为数组形式
+// 父子watch合并时，即使他们的属性相同，也不应该用子属性覆盖父属性，因为他们的handler函数内容不同
+// 应该将父子watch的每个key合并为数组形式
 strats.watch = function (
   parentVal: ?Object,
   childVal: ?Object,
@@ -309,18 +319,19 @@ strats.watch = function (
   key: string
 ): ?Object {
   // work around Firefox's Object.prototype.watch...
-  // 由于Firefox的Object原型上自带watch属性，当option没有声明watch属性时，传入本函数的有可能是Object.prototype.watch，因此要重置为undefined
+  // 由于旧版本Firefox的Object原型上自带watch属性，当option没有声明watch属性时，传入本函数的parentVal、childVal有可能是Object.prototype.watch，因此要重置为undefined
   if (parentVal === nativeWatch) parentVal = undefined
   if (childVal === nativeWatch) childVal = undefined
   /* istanbul ignore if */
-  // 从父watch上复制一份出来，避免共用同一个对象，从而导致父watch修改时影响到子watch
+  // 只有在父子watch都存在的情况下，才需要合并watch。因此：
+  // 1、当子watch不存在时，直接使用父watch。这里要注意，需要通过原型链来访问父watch，避免对子watch的修改影响到父watch
   if (!childVal) return Object.create(parentVal || null)
-  // watch只能为对象
+  // 2、当父watch不存在时，直接使用子watch。在使用子watch前，先检查一下该watch值是否是一个对象
   if (process.env.NODE_ENV !== 'production') {
     assertObjectType(key, childVal, vm)
   }
-  // 不存在父watch，直接使用子watch
   if (!parentVal) return childVal
+  // 3、父子watch均存在
   const ret = {}
   extend(ret, parentVal)
   for (const key in childVal) {
@@ -351,17 +362,22 @@ strats.computed = function (
   vm?: Component,
   key: string
 ): ?Object {
+  // 子级存在，判断是否是对象
   if (childVal && process.env.NODE_ENV !== 'production') {
     assertObjectType(key, childVal, vm)
   }
-  // 父级不存在，直接返回子级
+  // TODO https://github.com/vuejs/vue/issues/4767
+  // TODO 由于inject存在，因此本函数的合并顺序不同于watch的策略函数，具体见 https://github.com/vuejs/vue/issues/6093
+  // 只有父子属性均存在，才需要合并
+  // 1、父级不存在，直接使用子级
   if (!parentVal) return childVal
   // TODO 为何不用{}？
   const ret = Object.create(null)
   // TODO 为什么不用Object.assign({}, parentVal)，是为了赋值parentVal原型链上的自定义属性？
   // TODO 看下对象的深浅拷贝
+  // 2、父级存在，则复制一份父级。子级不存在则返回父级
   extend(ret, parentVal)
-  // 父子同时存在，则用子级覆盖父级
+  // 3、子级存在，则用子级覆盖父级
   if (childVal) extend(ret, childVal)
   return ret
 }
