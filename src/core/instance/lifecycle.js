@@ -31,6 +31,7 @@ export function setActiveInstance(vm: Component) {
   }
 }
 
+// 初始化在整个生命周期会用到的属性
 export function initLifecycle (vm: Component) {
   const options = vm.$options
 
@@ -39,8 +40,7 @@ export function initLifecycle (vm: Component) {
   // 【抽象组件】不渲染真实dom，如keep-alive、<transition>；不会出现在父子关系的路径上
   let parent = options.parent
   if (parent && !options.abstract) {
-    // 父组件是抽象的 && 父组件存在父级，则继续向上查找
-    // TODO options.parent的parent与$parent的区别？
+    // 如果父组件是抽象的，且父组件存在父级，则继续向上查找
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
