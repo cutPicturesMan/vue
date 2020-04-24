@@ -97,6 +97,7 @@ if (process.env.NODE_ENV !== 'production') {
  * Helper that recursively merges two data objects together.
  */
 // 将from对象的属性合并到to对象中
+// TODO 这里还没怎么看
 function mergeData (to: Object, from: ?Object): Object {
   if (!from) return to
   let key, toVal, fromVal
@@ -226,7 +227,7 @@ function mergeHook (
   childVal: ?Function | ?Array<Function>
 ): ?Array<Function> {
   const res = childVal
-    // 子hook存在，则判断父hook是否存在
+    // 判断父hook是否存在
     ? parentVal
       // 父hook存在，则与子hook合并成一个数组（父hook永远是数组）
       ? parentVal.concat(childVal)
@@ -238,6 +239,7 @@ function mergeHook (
     : parentVal
   return res
     ? dedupeHooks(res)
+    // 传空值，则原样返回
     : res
 }
 
@@ -337,7 +339,7 @@ strats.watch = function (
   for (const key in childVal) {
     let parent = ret[key]
     const child = childVal[key]
-    // 子watch的key同时存在于父watch上 && 父watch的key不是数组（Vue.extend创建的父watch的key有可能不是数组）
+    // 父watch上也有这个key && 父watch的key不是数组
     if (parent && !Array.isArray(parent)) {
       parent = [parent]
     }
