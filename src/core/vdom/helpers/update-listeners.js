@@ -11,6 +11,7 @@ import {
   isPlainObject
 } from 'shared/util'
 
+// 将事件修饰符的简写形式（该简写形式只在Vue源码中使用）转为对象的属性，并缓存下来
 const normalizeEvent = cached((name: string): {
   name: string,
   once: boolean,
@@ -19,6 +20,7 @@ const normalizeEvent = cached((name: string): {
   handler?: Function,
   params?: Array<any>
 } => {
+  // TODO 处理顺序为啥是 & -> ~ -> !
   const passive = name.charAt(0) === '&'
   name = passive ? name.slice(1) : name
   const once = name.charAt(0) === '~' // Prefixed last, checked first
@@ -68,7 +70,10 @@ export function updateListeners (
       cur = def.handler
       event.params = def.params
     }
+    // TODO 这里为啥不把''、0加入判断？？？
+    // TODO 这里应该有把事件名转为具体的函数，弄清该过程
     if (isUndef(cur)) {
+      // 事件没有添加处理函数，则提示
       process.env.NODE_ENV !== 'production' && warn(
         `Invalid handler for event "${event.name}": got ` + String(cur),
         vm
@@ -82,11 +87,15 @@ export function updateListeners (
       }
       add(event.name, cur, event.capture, event.passive, event.params)
     } else if (cur !== old) {
+      // 新旧事件均有对应的处理函数，且不相同
+      // TODO 然后？
       old.fns = cur
       on[name] = old
     }
   }
+  // 移除不存在的旧监听事件
   for (name in oldOn) {
+    // 旧监听事件在新事件中已被移除 || 新监听事件值为null、undefined
     if (isUndef(on[name])) {
       event = normalizeEvent(name)
       remove(event.name, oldOn[name], event.capture)
