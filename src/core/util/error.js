@@ -44,9 +44,12 @@ export function invokeWithErrorHandling (
   try {
     res = args ? handler.apply(context, args) : handler.call(context)
     if (res && !res._isVue && isPromise(res) && !res._handled) {
+      // 处理错误逻辑
       res.catch(e => handleError(e, vm, info + ` (Promise/async)`))
       // issue #9511
       // avoid catch triggering multiple times when nested calls
+      // TODO https://github.com/vuejs/vue/issues/9511
+      // TODO 搞清父子组件emit某个事件时的事件处理函数执行顺序，emit的时候执行一次，父级再执行一次？？？
       res._handled = true
     }
   } catch (e) {

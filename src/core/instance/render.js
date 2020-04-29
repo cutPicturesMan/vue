@@ -28,6 +28,10 @@ export function initRender (vm: Component) {
   // so that we get proper render context inside it.
   // args order: tag, data, children, normalizationType, alwaysNormalize
   // internal version is used by render functions compiled from templates
+  // 将createElement()返回的_createElement函数绑定到Vue实例上，这样可以得到适合的渲染上下文
+  // 参数顺序：tag, data, children, normalizationType, alwaysNormalize
+  // 内部版本号是用来供由模板编译而来的render函数使用
+
   // _c属于内部版本，由模板编译的render函数使用
   vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false)
   // normalization is always applied for the public version, used in
@@ -37,6 +41,8 @@ export function initRender (vm: Component) {
 
   // $attrs & $listeners are exposed for easier HOC creation.
   // they need to be reactive so that HOCs using them are always updated
+  // $attrs、$listeners的导出是为了更容易的创建高阶组件
+  // 他们需要始终是响应式的，这样高阶组件使用他们时就永远是已经更新过的
   const parentData = parentVnode && parentVnode.data
 
   /* istanbul ignore else */

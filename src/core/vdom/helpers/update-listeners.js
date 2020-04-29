@@ -43,6 +43,7 @@ export function createFnInvoker (fns: Function | Array<Function>, vm: ?Component
     if (Array.isArray(fns)) {
       const cloned = fns.slice()
       for (let i = 0; i < cloned.length; i++) {
+        // TODO 不要直接传递arguments？
         invokeWithErrorHandling(cloned[i], null, arguments, vm, `v-on handler`)
       }
     } else {
