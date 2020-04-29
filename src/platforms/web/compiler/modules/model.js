@@ -2,7 +2,7 @@
 
 /**
  * TODO 为何要将使用了v-model、动态绑定type属性的input标签，处理为3种情况
- * Expand input[v-model] with dyanmic type bindings into v-if-else chains
+ * Expand input[v-model] with dynamic type bindings into v-if-else chains
  * Turn this:
  *   <input v-model="data[type]" :type="type">
  * into this:

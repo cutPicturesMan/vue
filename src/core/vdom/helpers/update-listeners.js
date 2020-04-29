@@ -36,6 +36,8 @@ const normalizeEvent = cached((name: string): {
 })
 
 export function createFnInvoker (fns: Function | Array<Function>, vm: ?Component): Function {
+  // TODO 内存泄漏：https://github.com/vuejs/vue/issues/4990
+  // https://jsfiddle.net/cjqap2t6/1/
   function invoker () {
     const fns = invoker.fns
     if (Array.isArray(fns)) {
