@@ -70,6 +70,7 @@ export default class Watcher {
     this.dirty = this.lazy // for lazy watchers
     this.deps = []
     this.newDeps = []
+    // TODO 上面两行为什么不用new Set()？因为其无法判断对象重复？
     this.depIds = new Set()
     this.newDepIds = new Set()
     this.expression = process.env.NODE_ENV !== 'production'
@@ -150,18 +151,23 @@ export default class Watcher {
   /**
    * Clean up for dependency collection.
    */
+  // 清理依赖收集
   cleanupDeps () {
     let i = this.deps.length
+    // 如果依赖项收集dep不再存在，则移除当前watch在该依赖项下的订阅
     while (i--) {
       const dep = this.deps[i]
       if (!this.newDepIds.has(dep.id)) {
         dep.removeSub(this)
       }
     }
+    // depIds与newDepIds互换其值
+    // TODO 为什么要互换其值之后再清空？？？
     let tmp = this.depIds
     this.depIds = this.newDepIds
     this.newDepIds = tmp
     this.newDepIds.clear()
+    // deps与newDeps互换其值
     tmp = this.deps
     this.deps = this.newDeps
     this.newDeps = tmp
