@@ -17,6 +17,7 @@ export default class Dep {
 
   constructor () {
     this.id = uid++
+    // 订阅者，subscriber的简写
     this.subs = []
   }
 
@@ -59,6 +60,7 @@ export default class Dep {
 // 当前目标的watcher被调用的时候，Dep.target才会有值
 // 由于在任何时间内，只有1个watcher能被调用，因此Dep.target是全局唯一的
 Dep.target = null
+// TODO Vue2 中(本文源码为Vue2)，视图被抽象为一个 render 函数，一个 render 函数只会生成一个 watcher。比如我们有如下一个模板，模板中使用了Header组件。Vue2 中组件数的结构在视图渲染时就映射为 render 函数的嵌套调用，有嵌套调用就会有调用栈。当 render模板时，遇到Header组件会调用Header组件的render函数，两个render函数依次入栈，执行完函数，依次出栈
 const targetStack = []
 
 export function pushTarget (target: ?Watcher) {

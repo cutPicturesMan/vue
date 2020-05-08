@@ -68,7 +68,9 @@ export default class Watcher {
     this.id = ++uid // uid for batching
     this.active = true
     this.dirty = this.lazy // for lazy watchers
+    // 记录上次watcher收集的依赖
     this.deps = []
+    // 记录新一轮watcher收集的依赖
     this.newDeps = []
     // TODO 上面两行为什么不用new Set()？因为其无法判断对象重复？
     this.depIds = new Set()
@@ -103,15 +105,14 @@ export default class Watcher {
   /**
    * Evaluate the getter, and re-collect dependencies.
    */
+  // 当数据发生变动时，执行getter函数，并重新收集依赖
   get () {
     pushTarget(this)
     let value
     const vm = this.vm
     try {
-      // Q 这里为什么要用call？
-      // A getter中有可能访问this，如return this.a + this.b，因此需要绑定this
-      // Q 这里为什么要用try...catch包裹？
-      // A getter完全是用户自定义的，内部有可能出错，如return this.a.b，这时vm上如果没有a.b，则会报错
+      // getter中有可能访问this，如return this.a + this.b，因此需要用call绑定this
+      // getter完全是用户自定义的，内部有可能出错，如return this.a.b，这时vm上如果没有a.b，则会报错。所以要用try...catch包裹
       value = this.getter.call(vm, vm)
     } catch (e) {
       // new Watcher在$watch中调用产生的错误，进行错误拦截提示
@@ -178,6 +179,7 @@ export default class Watcher {
    * Subscriber interface.
    * Will be called when a dependency changes.
    */
+  // 当依赖改变时，调用这个订阅者接口，重新运行watcher的get方法收集依赖
   update () {
     /* istanbul ignore else */
     if (this.lazy) {
@@ -232,6 +234,7 @@ export default class Watcher {
   /**
    * Depend on all deps collected by this watcher.
    */
+  // 依赖当前watcher收集的所有dep
   depend () {
     let i = this.deps.length
     while (i--) {

@@ -47,7 +47,7 @@ export class Observer {
     this.value = value
     // 这里的dep与defineReactive中的dep不同
     // 此dep用于在对象或数组发生无法检测的变动时，通知watch
-    // 在vue的set和delete操作中会利用上
+    // TODO 在vue的set和delete操作中会利用上？
     this.dep = new Dep()
     this.vmCount = 0
     def(value, '__ob__', this)
