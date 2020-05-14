@@ -40,6 +40,7 @@ export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
  * Parse simple path.
  */
 const bailRE = new RegExp(`[^${unicodeRegExp.source}.$_\\d]`)
+// 键路径 -> 获取某对象键路径的函数
 export function parsePath (path: string): any {
   // 路径除了字母数字下划线之外，只能包含两个特殊字符"."、"$"：'a.b.c'、'$a.b.c'
   // 其余都是都是错误路径，直接return
@@ -48,9 +49,9 @@ export function parsePath (path: string): any {
   }
   // 'a.b.c' => ['a', 'b', 'c']
   const segments = path.split('.')
-  // 传入的对象obj必须包含segments的完整属性路径，否则返回undefined
   return function (obj) {
     for (let i = 0; i < segments.length; i++) {
+      // 传入的对象obj必须包含segments的完整属性路径，否则返回undefined
       if (!obj) return
       obj = obj[segments[i]]
     }

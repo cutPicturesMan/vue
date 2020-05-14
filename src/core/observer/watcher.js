@@ -68,23 +68,24 @@ export default class Watcher {
     this.id = ++uid // uid for batching
     this.active = true
     this.dirty = this.lazy // for lazy watchers
-    // 记录上次watcher收集的依赖
+    // 记录新旧watcher收集的Dep
     this.deps = []
-    // 记录新一轮watcher收集的依赖
     this.newDeps = []
-    // TODO 上面两行为什么不用new Set()？因为其无法判断对象重复？
+    // 记录新旧watcher收集的Dep的id
     this.depIds = new Set()
     this.newDepIds = new Set()
+    // expOrFn的字符串形式，主要用于开发环境的提示
     this.expression = process.env.NODE_ENV !== 'production'
       ? expOrFn.toString()
       : ''
     // parse expression for getter
-    // 将expOrFn统一转为Function形式后赋值给getter
-    // Q 如果函数不是return this.a而是return 1，会有什么影响？
+    // getter为函数形式
+    // https://cn.vuejs.org/v2/api/#vm-watch
+    // TODO Watcher用在哪些地方，哪里的参数类型为Function，哪里的参数类型为String？
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
-      // parsePath只接受String形式的键路径，返回Undefined或Function
+      // 键路径 -> 获取某对象键路径的函数
       this.getter = parsePath(expOrFn)
       // 路径解析出错，要专门提示下。执行getter出错，放到get函数中处理
       if (!this.getter) {
@@ -155,20 +156,21 @@ export default class Watcher {
   // 清理依赖收集
   cleanupDeps () {
     let i = this.deps.length
-    // 如果依赖项收集dep不再存在，则移除当前watch在该依赖项下的订阅
     while (i--) {
       const dep = this.deps[i]
+      // 如果上次收集的Dep不再存在，则移除当前watch在该Dep下的订阅
       if (!this.newDepIds.has(dep.id)) {
         dep.removeSub(this)
       }
     }
-    // depIds与newDepIds互换其值
-    // TODO 为什么要互换其值之后再清空？？？
+    // 将新收集Dep的id列表赋值给depIds
+    // 然后赋予newDepIds一个空set值
+    // 这里没有重新new Set()作为newDepIds的新值，而是使用先前缓存的depIds数组，并将其清空作为newDepIds的新值，是为了节省内存，且避免了频繁触发垃圾回收机制
     let tmp = this.depIds
     this.depIds = this.newDepIds
     this.newDepIds = tmp
     this.newDepIds.clear()
-    // deps与newDeps互换其值
+    // 同上
     tmp = this.deps
     this.deps = this.newDeps
     this.newDeps = tmp
@@ -179,7 +181,7 @@ export default class Watcher {
    * Subscriber interface.
    * Will be called when a dependency changes.
    */
-  // 当依赖改变时，调用这个订阅者接口，重新运行watcher的get方法收集依赖
+  // 当Dep改变时，调用这个订阅者接口，重新运行watcher的get方法收集依赖
   update () {
     /* istanbul ignore else */
     if (this.lazy) {
