@@ -79,9 +79,9 @@ export default class Watcher {
       ? expOrFn.toString()
       : ''
     // parse expression for getter
-    // getter为函数形式
-    // https://cn.vuejs.org/v2/api/#vm-watch
-    // TODO Watcher用在哪些地方，哪里的参数类型为Function，哪里的参数类型为String？
+    // 将getter统一为函数形式
+    // 1、new Vue({ watch: { key: value } })中的key为String类型
+    // 2、vm.$watch(expOrFn, cb, [options])中的expOrFn为String、Function类型（见https://cn.vuejs.org/v2/api/#vm-watch）
     if (typeof expOrFn === 'function') {
       this.getter = expOrFn
     } else {
@@ -139,6 +139,8 @@ export default class Watcher {
   /**
    * Add a dependency to this directive.
    */
+  // 将Dep添加到当前Watcher的newDeps中
+  // 将当前Watcher添加到Dep.subs中
   addDep (dep: Dep) {
     const id = dep.id
     if (!this.newDepIds.has(id)) {
