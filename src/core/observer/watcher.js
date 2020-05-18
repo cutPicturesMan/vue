@@ -131,6 +131,8 @@ export default class Watcher {
         traverse(value)
       }
       popTarget()
+      // TODO 为什么Dep中的targetStack要改成数组？
+      // #3133
       this.cleanupDeps()
     }
     return value
@@ -200,6 +202,7 @@ export default class Watcher {
    * Will be called by the scheduler.
    */
   run () {
+    // 如果当前Watcher还未被销毁
     if (this.active) {
       const value = this.get()
       if (
@@ -208,11 +211,13 @@ export default class Watcher {
         // when the value is the same, because the value may
         // have mutated.
         isObject(value) ||
+        // TODO deep不就是值为对象、数组时需要加的参数么，这里前面判断了isObject，为啥还要加一个deep判断
         this.deep
       ) {
         // set new value
         const oldValue = this.value
         this.value = value
+        // 如果是用户方调用watch，则增加提示
         if (this.user) {
           try {
             this.cb.call(this.vm, value, oldValue)
@@ -230,6 +235,7 @@ export default class Watcher {
    * Evaluate the value of the watcher.
    * This only gets called for lazy watchers.
    */
+  // 运算出watcher的值，只在延迟的watcher中调用
   evaluate () {
     this.value = this.get()
     this.dirty = false
