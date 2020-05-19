@@ -165,11 +165,12 @@ function callActivatedHooks (queue) {
  * pushed when the queue is being flushed.
  */
 // 将一个watcher推入watcher队列
-// ID重复的任务将会被跳过，除非它是在刷新队列时推入的
+// ID重复的任务将会被跳过，除非它是在更新队列时推入的
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
   if (has[id] == null) {
     has[id] = true
+    // 队列没有执行更新时，直接将watcher放到队列尾部
     if (!flushing) {
       queue.push(watcher)
     } else {
