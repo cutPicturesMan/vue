@@ -67,6 +67,7 @@ if (inBrowser && !isIE) {
 
 /**
  * Flush both queues and run the watchers.
+ * 刷新队列并运行观察程序
  */
 function flushSchedulerQueue () {
   currentFlushTimestamp = getNow()
@@ -81,10 +82,17 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+  // 刷新前排序队列
+  // 这样做确保了：
+  // 1、组件的更新顺序始终是从父组件到子组件（因为父组件总是比子组件先创建）
+  // 2、组件内用户创建的watcher比组件自身的render watcher先运行（因为用户的watcher比render watcher先创建）
+  // 3、如果组件在父组件的watcher运行的时候被销毁，该组件的watcher会被跳过
+  // TODO 写一篇[].sort使用注意事项
   queue.sort((a, b) => a.id - b.id)
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
+  // 不要缓存队列的length属性，因为当我们运行已存在的watcher时，可能会有更多的watcher被加入到队列中
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index]
     if (watcher.before) {
@@ -94,6 +102,7 @@ function flushSchedulerQueue () {
     has[id] = null
     watcher.run()
     // in dev build, check and stop circular updates.
+    // 在开发环境中，检查并停止陷入死循环的更新
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
       circular[id] = (circular[id] || 0) + 1
       if (circular[id] > MAX_UPDATE_COUNT) {

@@ -30,6 +30,13 @@ function flushCallbacks () {
 // where microtasks have too high a priority and fire in between supposedly
 // sequential events (e.g. #4521, #6690, which have workarounds)
 // or even between bubbling of the same event (#6566).
+
+// 这里我们有一个使用microtasks来实现的异步延迟包装器
+// 在2.5版本我们使用macrotasks（结合microtasks）
+// 然而，如果在重绘前改变了状态，那么这么做会有微妙的问题（例如 #6813 out-in过渡，改变的状态在下一个tick才会生效，导致css先生效，页面闪一下）
+// 而且，在事件处理器中使用macrotasks，会导致一些奇怪的行为并且无法规避（例如 #7109, #7153, #7546, #7834, #8109）
+// 所以我们再次在各处使用microtasks
+// 这种权衡的一个主要缺点是，在某些情况下微任务具有过高的优先级，并且在本应该按顺序发生的事件之间执行，甚至是同一事件源冒泡监听回调之间执行（#6566）
 let timerFunc
 
 // The nextTick behavior leverages the microtask queue, which can be accessed
@@ -38,6 +45,11 @@ let timerFunc
 // UIWebView in iOS >= 9.3.3 when triggered in touch event handlers. It
 // completely stops working after triggering a few times... so, if native
 // Promise is available, we will use it:
+
+// nextTick函数的行为，改变了microtask队列。microtask队列可以通过原生的Promise.then或者MutationObserver改变
+// MutationObserver有着广泛的支持，然而在iOS >= 9.3.3的UIWebView上，当在触摸事件处理函数上触发MutationObserver时有着严重的bug
+// 在触发了几次之后，MutationObserver完全停止了工作
+// 所以，如果原生的Promise是可用的，我们将使用原生Promise
 /* istanbul ignore next, $flow-disable-line */
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
   const p = Promise.resolve()
