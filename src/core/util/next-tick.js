@@ -35,6 +35,7 @@ function flushCallbacks () {
 // 在2.5版本我们使用macrotasks（结合microtasks）
 // 然而，如果在重绘前改变了状态，那么这么做会有微妙的问题（例如 #6813 out-in过渡，改变的状态在下一个tick才会生效，导致css先生效，页面闪一下）
 // 而且，在事件处理器中使用macrotasks，会导致一些奇怪的行为并且无法规避（例如 #7109, #7153, #7546, #7834, #8109）
+// A 这里使用#7546来说明，出于安全原因考虑，移动端浏览器限制某些操作必须由用户交互触发，且这些操作需要在事件循环的当前tick运行，例如video全屏、media播放等。如果在事件处理中使用macrotasks，那么用户交互事件已经触发，但是其对应的处理函数不会在本轮事件循环执行（具体哪一轮看macrotasks队列中任务有多少），这就造成一些奇怪的现象。
 // 所以我们再次在各处使用microtasks
 // 这种权衡的一个主要缺点是，在某些情况下微任务具有过高的优先级，并且在本应该按顺序发生的事件之间执行，甚至是同一事件源冒泡监听回调之间执行（#6566）
 let timerFunc
@@ -64,6 +65,8 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   }
   isUsingMicroTask = true
 } else if (!isIE && typeof MutationObserver !== 'undefined' && (
+    // TODO https://github.com/vuejs/vue/issues/6690
+    // TODO MessageChannel?
   isNative(MutationObserver) ||
   // PhantomJS and iOS 7.x
   MutationObserver.toString() === '[object MutationObserverConstructor]'
