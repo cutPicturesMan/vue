@@ -12,6 +12,7 @@ let pending = false
 
 function flushCallbacks () {
   pending = false
+  // 重新复制一个callbacks队列，防止在执行各个callback时，callback中又调用$nextTick改变了callbacks队列
   const copies = callbacks.slice(0)
   callbacks.length = 0
   for (let i = 0; i < copies.length; i++) {

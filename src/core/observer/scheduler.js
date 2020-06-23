@@ -174,9 +174,11 @@ function callActivatedHooks (queue) {
  * pushed when the queue is being flushed.
  */
 // 将一个watcher推入watcher队列
-// ID重复的任务将会被跳过，除非它是在更新队列时推入的
+// ID重复的watcher将会被跳过，除非在更新队列时，通过某个watcher.run()函数推入到队列中
+// 注意，之前队列中相同的watcher已被执行并且退出队列
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
+  // 不在队列中的watcher才能被添加
   if (has[id] == null) {
     has[id] = true
     // 队列没有执行更新时，直接将watcher放到队列尾部
@@ -185,7 +187,11 @@ export function queueWatcher (watcher: Watcher) {
     } else {
       // if already flushing, splice the watcher based on its id
       // if already past its id, it will be run next immediately.
+      // 如果此时队列正在刷新，且刷新到第index个watcher，由于上面的has[id] == null 决定了待添加的watcher要么是队列中已经执行过的watcher(第index个watcher也算执行过)、要么是全新的watcher
+      // 1、该watcher是全新的watcher，根据该watcher的id将其插入到对应的位置
+      // 2、该watcher已经执行过，则插入到当前队列的第index个之后（即立马执行）
       let i = queue.length - 1
+      // 队列正在刷新的第index之后的watchers && 根据id排序找到对应的位置
       while (i > index && queue[i].id > watcher.id) {
         i--
       }
