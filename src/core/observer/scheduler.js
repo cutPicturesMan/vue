@@ -198,6 +198,8 @@ export function queueWatcher (watcher: Watcher) {
       queue.splice(i + 1, 0, watcher)
     }
     // queue the flush
+    // 从本次调用queueWatcher直到nextTick执行完毕期间，不允许重复刷新队列，即缓冲在同一事件循环中发生的所有数据变更
+    // https://cn.vuejs.org/v2/guide/reactivity.html#异步更新队列
     if (!waiting) {
       waiting = true
 
