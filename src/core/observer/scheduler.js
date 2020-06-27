@@ -102,7 +102,7 @@ function flushSchedulerQueue () {
     has[id] = null
     watcher.run()
     // in dev build, check and stop circular updates.
-    // 在开发环境中，检查并停止陷入死循环的更新
+    // 在开发环境中，记录每一个watcher的更新次数，超过100次则提示
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
       circular[id] = (circular[id] || 0) + 1
       if (circular[id] > MAX_UPDATE_COUNT) {
@@ -120,12 +120,14 @@ function flushSchedulerQueue () {
   }
 
   // keep copies of post queues before resetting state
+  // 在重置状态前将队列复制一份
   const activatedQueue = activatedChildren.slice()
   const updatedQueue = queue.slice()
 
   resetSchedulerState()
 
   // call component updated and activated hooks
+  // 调用组件的updated、activated钩子
   callActivatedHooks(activatedQueue)
   callUpdatedHooks(updatedQueue)
 
@@ -198,15 +200,17 @@ export function queueWatcher (watcher: Watcher) {
       queue.splice(i + 1, 0, watcher)
     }
     // queue the flush
-    // 从本次调用queueWatcher直到nextTick执行完毕期间，不允许重复刷新队列，即缓冲在同一事件循环中发生的所有数据变更
-    // https://cn.vuejs.org/v2/guide/reactivity.html#异步更新队列
+    // 在队列刷新期间，可以添加watcher，但是直到队列刷新完毕，都不能再次运行刷新函数
     if (!waiting) {
       waiting = true
 
+      // 测试环境 && 配置开启同步模式，则不缓冲watcher，调用多少次queueWatcher，就直接刷新队列，性能将会降低很多
       if (process.env.NODE_ENV !== 'production' && !config.async) {
         flushSchedulerQueue()
         return
       }
+      // 将刷新队列函数放到下一个tick执行，缓冲在同一事件循环中发生的所有数据变更
+      // https://cn.vuejs.org/v2/guide/reactivity.html#异步更新队列
       nextTick(flushSchedulerQueue)
     }
   }

@@ -116,7 +116,7 @@ export function nextTick (cb?: Function, ctx?: Object) {
       _resolve(ctx)
     }
   })
-  // 在对应的事件循环中执行回调队列
+  // 类似scheduler.js中的变量waiting，可以多次调用nextTick将cb推入队列，但是在nextTick的回调函数队列执行完毕之前，只能调用1次刷新回调函数队列的方法
   if (!pending) {
     pending = true
     timerFunc()

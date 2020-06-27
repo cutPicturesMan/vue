@@ -45,6 +45,9 @@ export default class Dep {
       // subs aren't sorted in scheduler if not running async
       // we need to sort them now to make sure they fire in correct
       // order
+      // 如果config.async设置为false，subs在调度器中不会排序
+      // 我们需要对其进行排序，以确保按照正确的顺序执行
+      // TODO 分析一下在watcher的同步执行方式下，待执行的watcher回调数组按顺序执行的重要性/test/unit/features/global-api/config.spec.js runs watchers in correct order when false
       subs.sort((a, b) => a.id - b.id)
     }
     // TODO for与forEach的效率？

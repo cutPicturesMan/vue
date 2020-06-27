@@ -123,6 +123,8 @@ export default ({
    * Perform updates asynchronously. Intended to be used by Vue Test Utils
    * This will significantly reduce performance if set to false.
    */
+  // 异步执行update。打算在vue测试工具中使用
+  // 如果设置为false，将大大降低性能
   async: true,
 
   /**
