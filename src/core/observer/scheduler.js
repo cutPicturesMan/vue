@@ -39,9 +39,13 @@ function resetSchedulerState () {
 // if the page has thousands of event listeners. Instead, we take a timestamp
 // every time the scheduler flushes and use that for all event listeners
 // attached during that flush.
+// 异步边界情况#6566：当事件监听器附加上时（addEventListener），需要保存时间戳
+// 然而，调用performance.now()开销特别大，尤其是页面有成千上万个事件监听器
+// 取而代之的是，每次调度程序刷新时，我们都要加上一个时间戳，并将其用于该刷新期间附加的所有事件侦听器
 export let currentFlushTimestamp = 0
 
 // Async edge case fix requires storing an event listener's attach timestamp.
+// getNow函数即Date.now函数
 let getNow: () => number = Date.now
 
 // Determine what event timestamp the browser is using. Annoyingly, the
@@ -50,6 +54,9 @@ let getNow: () => number = Date.now
 // same timestamp type when saving the flush timestamp.
 // All IE versions use low-res event timestamps, and have problematic clock
 // implementations (#9632)
+// 确定浏览器正在使用的事件时间戳
+// 烦人的是，时间戳既可以是hi-res（High Resolution Time，高精度事件，亚毫秒级别）（相对于页面加载），也可以是low-res（相对于UNIX纪元），所以为了按顺序比较时间，我们必须在保存时间戳的时候，使用相同的时间戳类型
+// 所有的IE版本都是使用low-res事件时间戳，并且时钟实现有问题（#9632）
 if (inBrowser && !isIE) {
   const performance = window.performance
   if (
@@ -61,6 +68,7 @@ if (inBrowser && !isIE) {
     // smaller than it, it means the event is using a hi-res timestamp,
     // and we need to use the hi-res version for event listener timestamps as
     // well.
+    // 如果事件的时间戳，
     getNow = () => performance.now()
   }
 }
@@ -143,6 +151,8 @@ function callUpdatedHooks (queue) {
   while (i--) {
     const watcher = queue[i]
     const vm = watcher.vm
+    // vm表示Vue、VueComponent，如果watcher相等则表示当前是Vue、VueComponent
+    // 是Vue、VueComponent && 已挂载 && 未销毁
     if (vm._watcher === watcher && vm._isMounted && !vm._isDestroyed) {
       callHook(vm, 'updated')
     }

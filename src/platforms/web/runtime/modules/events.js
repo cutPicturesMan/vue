@@ -56,7 +56,12 @@ function add (
   // the solution is simple: we save the timestamp when a handler is attached,
   // and the handler would only fire if the event passed to it was fired
   // AFTER it was attached.
+  // 异步边界情况(#6566)：内层元素的click事件触发patch，在patch期间，事件处理器被附加到外层元素上，又触发一遍
+  // 这种情况发生的原因是因为浏览器在事件传播期间执行了microtask
+  // TODO 弄清microtask与浏览器事件传播之间的先后执行顺序关系？
+  // 解决办法很简单：当处理器被附加上时，保存一个时间戳，该处理器仅会在被附加上之后，事件传递到它时才会触发
   if (useMicrotaskFix) {
+    // 缓存currentFlushTimestamp的值（export语句输出的接口，取到的是模块内部实时的值）
     const attachedTimestamp = currentFlushTimestamp
     const original = handler
     handler = original._wrapper = function (e) {
@@ -64,16 +69,23 @@ function add (
         // no bubbling, should always fire.
         // this is just a safety net in case event.timeStamp is unreliable in
         // certain weird environments...
+        // 不是冒泡事件，应该总是触发
+        // 这只是一个安全措施，以防止在某些怪异的环境中，event.timeStamp是不可靠的
         e.target === e.currentTarget ||
         // event is fired after handler attachment
+        // 在处理器附加上之后触发事件
         e.timeStamp >= attachedTimestamp ||
         // bail for environments that have buggy event.timeStamp implementations
         // #9462 iOS 9 bug: event.timeStamp is 0 after history.pushState
         // #9681 QtWebEngine event.timeStamp is negative value
+        // 为event.timeStamp有bug的环境提供保证
+        // #9462：在history.pushState之后，event.timeStamp为0
+        // #9462：QtWebEngine下的event.timeStamp为负值
         e.timeStamp <= 0 ||
         // #9448 bail if event is fired in another document in a multi-page
         // electron/nw.js app, since event.timeStamp will be using a different
         // starting reference
+
         e.target.ownerDocument !== document
       ) {
         return original.apply(this, arguments)
