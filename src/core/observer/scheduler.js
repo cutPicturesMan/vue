@@ -56,7 +56,10 @@ let getNow: () => number = Date.now
 // implementations (#9632)
 // 确定浏览器正在使用的事件时间戳
 // 烦人的是，时间戳既可以是hi-res（High Resolution Time，高精度事件，亚毫秒级别）（相对于页面加载），也可以是low-res（相对于UNIX纪元），所以为了按顺序比较时间，我们必须在保存时间戳的时候，使用相同的时间戳类型
-// 所有的IE版本都是使用low-res事件时间戳，并且时钟实现有问题（#9632）
+
+// 所有的IE版本都是使用low-res事件时间戳，并且时钟实现有问题，因此要直接排除IE（#9632）
+// TODO https://github.com/vuejs/vue/issues/9632#issuecomment-471204389
+// TODO https://github.com/vuejs/vue/issues/9632#issuecomment-471244933
 if (inBrowser && !isIE) {
   const performance = window.performance
   if (
