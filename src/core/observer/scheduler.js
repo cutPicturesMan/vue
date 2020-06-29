@@ -62,13 +62,17 @@ if (inBrowser && !isIE) {
   if (
     performance &&
     typeof performance.now === 'function' &&
+    // 确定事件时间戳是高精度还是常规的UNIX时间戳，假定事件时间戳是常规的UNIX时间戳进行比较
+    // 由于安卓v8.x的UC浏览器降低了performance.now()的精度，因此不能假定事件时间戳是高精度，即不能使用performance.now()进行比较，故以下比较是不行的：document.createEvent('Event').timeStamp <= performance.now()
+    // https://github.com/vuejs/vue/issues/9729
     getNow() > document.createEvent('Event').timeStamp
   ) {
     // if the event timestamp, although evaluated AFTER the Date.now(), is
     // smaller than it, it means the event is using a hi-res timestamp,
     // and we need to use the hi-res version for event listener timestamps as
     // well.
-    // 如果事件的时间戳，
+    // 事件时间戳虽然在Date.now()后执行（按理来说后面执行的时间戳比较大），但是其值仍然比Date.now()小，这就说明事件使用的是高精度时间戳
+    // 我们的事件监听器时间戳也需要使用高精度版本
     getNow = () => performance.now()
   }
 }
