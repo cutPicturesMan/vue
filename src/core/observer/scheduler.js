@@ -58,14 +58,13 @@ let getNow: () => number = Date.now
 // 烦人的是，时间戳既可以是hi-res（High Resolution Time，高精度事件，亚毫秒级别）（相对于页面加载），也可以是low-res（相对于UNIX纪元），所以为了按顺序比较时间，我们必须在保存时间戳的时候，使用相同的时间戳类型
 
 // 所有的IE版本都是使用low-res事件时间戳，并且时钟实现有问题，因此要直接排除IE（#9632）
-// TODO https://github.com/vuejs/vue/issues/9632#issuecomment-471204389
-// TODO https://github.com/vuejs/vue/issues/9632#issuecomment-471244933
+// TODO 产生此issue的主要原因是IE下的时钟偏移，clock skew，暂时不看了：https://github.com/vuejs/vue/issues/9632#issuecomment-471204389
 if (inBrowser && !isIE) {
   const performance = window.performance
   if (
     performance &&
     typeof performance.now === 'function' &&
-    // 确定事件时间戳是高精度还是常规的UNIX时间戳，假定事件时间戳是常规的UNIX时间戳进行比较
+    // 确定事件时间戳是高精度还是常规的UNIX时间戳，假定事件时间戳是常规的UNIX时间戳进行比较new JSDOM
     // 由于安卓v8.x的UC浏览器降低了performance.now()的精度，因此不能假定事件时间戳是高精度，即不能使用performance.now()进行比较，故以下比较是不行的：document.createEvent('Event').timeStamp <= performance.now()
     // https://github.com/vuejs/vue/issues/9729
     getNow() > document.createEvent('Event').timeStamp

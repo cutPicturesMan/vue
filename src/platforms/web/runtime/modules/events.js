@@ -42,6 +42,7 @@ function createOnceHandler (event, handler, capture) {
 // #9446: Firefox <= 53 (in particular, ESR 52) has incorrect Event.timeStamp
 // implementation and does not fire microtasks in between event propagation, so
 // safe to exclude.
+// #9446：Firefox v53以下的版本Event.timeStamp实现有问题，值为1549471218936000，超过了Date.now()的值，
 const useMicrotaskFix = isUsingMicroTask && !(isFF && Number(isFF[1]) <= 53)
 
 function add (
@@ -69,7 +70,7 @@ function add (
         // no bubbling, should always fire.
         // this is just a safety net in case event.timeStamp is unreliable in
         // certain weird environments...
-        // 不是冒泡事件，应该总是触发
+        // 不存在冒泡事件，应该总是触发回调函数。即事件是在当前dom触发，而不是其子dom冒泡上来的
         // 这只是一个安全措施，以防止在某些怪异的环境中，event.timeStamp是不可靠的
         e.target === e.currentTarget ||
         // event is fired after handler attachment
@@ -79,13 +80,14 @@ function add (
         // #9462 iOS 9 bug: event.timeStamp is 0 after history.pushState
         // #9681 QtWebEngine event.timeStamp is negative value
         // 为event.timeStamp有bug的环境提供保证
-        // #9462：在history.pushState之后，event.timeStamp为0
-        // #9462：QtWebEngine下的event.timeStamp为负值
+        // #9462 IOS 9的bug：在history.pushState之后，event.timeStamp为0
+        // #9681 QtWebEngine下的event.timeStamp为负值
         e.timeStamp <= 0 ||
         // #9448 bail if event is fired in another document in a multi-page
         // electron/nw.js app, since event.timeStamp will be using a different
         // starting reference
-
+        // #9448：保证在多页的electron/nw.js应用中，子页面的事件会正常触发。因为event.timeStamp会使用不同的开始引用，所以这里不能用子页面的event.timeStamp与当前页面的attachedTimestamp比较
+        // #9448中当前页面的new Vue与子页面的new Vue使用的是相同的currentFlushTimestamp，都是基于父页面onLoad时起算的
         e.target.ownerDocument !== document
       ) {
         return original.apply(this, arguments)
