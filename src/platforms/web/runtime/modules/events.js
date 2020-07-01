@@ -42,7 +42,8 @@ function createOnceHandler (event, handler, capture) {
 // #9446: Firefox <= 53 (in particular, ESR 52) has incorrect Event.timeStamp
 // implementation and does not fire microtasks in between event propagation, so
 // safe to exclude.
-// #9446：Firefox v53以下的版本Event.timeStamp实现有问题，值为1549471218936000，超过了Date.now()的值，
+// #9446：Firefox v53以下版本的document.createEvent('Event').timeStamp实现有问题，为UNIX时间戳的值 * 1000，让判断错误的认为事件是采用Date.now()。而事件handler函数中的e.timeStamp为performance.now，导致一直不执行处理函数
+// 由于在此版本中，事件冒泡期间不会触发microtasks，因此可以不对该版本进行microtasks特殊处理
 const useMicrotaskFix = isUsingMicroTask && !(isFF && Number(isFF[1]) <= 53)
 
 function add (
@@ -59,7 +60,6 @@ function add (
   // AFTER it was attached.
   // 异步边界情况(#6566)：内层元素的click事件触发patch，在patch期间，事件处理器被附加到外层元素上，又触发一遍
   // 这种情况发生的原因是因为浏览器在事件传播期间执行了microtask
-  // TODO 弄清microtask与浏览器事件传播之间的先后执行顺序关系？
   // 解决办法很简单：当处理器被附加上时，保存一个时间戳，该处理器仅会在被附加上之后，事件传递到它时才会触发
   if (useMicrotaskFix) {
     // 缓存currentFlushTimestamp的值（export语句输出的接口，取到的是模块内部实时的值）
