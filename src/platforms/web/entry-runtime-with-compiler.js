@@ -15,6 +15,7 @@ const idToTemplate = cached(id => {
   return el && el.innerHTML
 })
 
+// 缓存原始$mount，以便对其进行重写成带compiler的$mount
 const mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (
   el?: string | Element,
@@ -52,7 +53,7 @@ Vue.prototype.$mount = function (
             )
           }
         }
-        // 2、html字符串模板（这个就是最终要处理成的结果，不需要处理了）
+        // 2、html字符串模板（这个就是要处理成的结果，不需要处理了）
 
       } else if (template.nodeType) {
         // 3、HTMLElement实例，则取其字符串形式
@@ -75,6 +76,7 @@ Vue.prototype.$mount = function (
         mark('compile')
       }
 
+      // 将template、el获取到的html字符串模板，转成render函数
       const { render, staticRenderFns } = compileToFunctions(template, {
         outputSourceRange: process.env.NODE_ENV !== 'production',
         shouldDecodeNewlines,
@@ -92,7 +94,7 @@ Vue.prototype.$mount = function (
       }
     }
   }
-  // 为什么这样写？
+  // 直接调用mount，需要用call方法使其内部的this指向正常
   return mount.call(this, el, hydrating)
 }
 

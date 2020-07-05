@@ -89,6 +89,7 @@ export function initMixin (Vue: Class<Component>) {
       measure(`vue ${vm._name} init`, startTag, endTag)
     }
 
+    // 存在option.el的情况下，立即进入编译过程，否则，需要显式调用 vm.$mount() 手动开启编译
     if (vm.$options.el) {
       vm.$mount(vm.$options.el)
     }

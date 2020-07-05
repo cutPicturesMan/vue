@@ -171,6 +171,7 @@ export function mountComponent (
     vm.$options.render = createEmptyVNode
     if (process.env.NODE_ENV !== 'production') {
       /* istanbul ignore if */
+      // TODO 本函数是直接用render函数编译，只要render函数不存在，就应该警告，为啥还要判断template的非id情况以及el是否指定？
       // 运行时版本不支持将模板编译成render函数
       // 为什么判断el？是因为render函数、template属性都不存在的情况下，会将el的html模板提取出来当作模板
       if ((vm.$options.template && vm.$options.template.charAt(0) !== '#') ||
@@ -195,6 +196,7 @@ export function mountComponent (
   /* istanbul ignore if */
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
     updateComponent = () => {
+      // TODO 性能记录主要用在哪里
       const name = vm._name
       const id = vm._uid
       const startTag = `vue-perf-start:${id}`
