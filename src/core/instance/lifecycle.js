@@ -167,14 +167,19 @@ export function mountComponent (
   hydrating?: boolean
 ): Component {
   vm.$el = el
+  // 本函数是直接用render函数编译，只要render函数不存在，就应该警告
   if (!vm.$options.render) {
     vm.$options.render = createEmptyVNode
     if (process.env.NODE_ENV !== 'production') {
       /* istanbul ignore if */
-      // TODO 本函数是直接用render函数编译，只要render函数不存在，就应该警告，为啥还要判断template的非id情况以及el是否指定？
-      // 运行时版本不支持将模板编译成render函数
-      // 为什么判断el？是因为render函数、template属性都不存在的情况下，会将el的html模板提取出来当作模板
+      // 带compiler版本的vue肯定存在option.render
+      // 如果没有option.render，肯定是用了不带compiler版本的vue，并且没有提供render函数
+
+      // 针对错用成不带compiler版本的情况进行提示
+      // 1、template使用了字符串模板，无法转成render函数
+      // TODO 个人认为，只要template存在，都是无法转成render函数的，因此这里仅判断template是否存在即可
       if ((vm.$options.template && vm.$options.template.charAt(0) !== '#') ||
+        // 2、指定了el表示想要将el中的html提取出来当作模板，实际是取不出来的
         vm.$options.el || el) {
         warn(
           'You are using the runtime-only build of Vue where the template ' +
@@ -221,6 +226,9 @@ export function mountComponent (
   // we set this to vm._watcher inside the watcher's constructor
   // since the watcher's initial patch may call $forceUpdate (e.g. inside child
   // component's mounted hook), which relies on vm._watcher being already defined
+  // 我们在watcher构造函数中，将构造函数中的this保存到vm._watcher中
+  // 是因为watcher的初始化patch有可能调用$forceUpdate（例如在子组件的mounted钩子函数中），$forceUpdate依赖vm._watcher已经被定义
+  // TODO 没理解 https://jsbin.com/pevuqitequ/2/edit?html,js,output
   new Watcher(vm, updateComponent, noop, {
     before () {
       if (vm._isMounted && !vm._isDestroyed) {
