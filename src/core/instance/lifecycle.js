@@ -228,7 +228,8 @@ export function mountComponent (
   // component's mounted hook), which relies on vm._watcher being already defined
   // 我们在watcher构造函数中，将构造函数中的this保存到vm._watcher中
   // 是因为watcher的初始化patch有可能调用$forceUpdate（例如在子组件的mounted钩子函数中），$forceUpdate依赖vm._watcher已经被定义
-  // TODO 没理解 https://jsbin.com/pevuqitequ/2/edit?html,js,output
+  // 所以要在创建watcher时就立刻赋值，而不是watcher创建完毕之后再赋值
+  // TODO 看完$forceUpdate之后再回来看 https://jsbin.com/pevuqitequ/2/edit?html,js,output
   new Watcher(vm, updateComponent, noop, {
     before () {
       if (vm._isMounted && !vm._isDestroyed) {
@@ -240,6 +241,8 @@ export function mountComponent (
 
   // manually mounted instance, call mounted on self
   // mounted is called for render-created child components in its inserted hook
+  // 手动安装实例，自行调用mounted函数
+  // mounted在渲染已创建的子组件的inserted钩子函数中调用
   if (vm.$vnode == null) {
     vm._isMounted = true
     callHook(vm, 'mounted')
