@@ -76,6 +76,7 @@ export function renderMixin (Vue: Class<Component>) {
     return nextTick(fn, this)
   }
 
+  // 生成虚拟dom
   Vue.prototype._render = function (): VNode {
     const vm: Component = this
     const { render, _parentVnode } = vm.$options
@@ -90,6 +91,7 @@ export function renderMixin (Vue: Class<Component>) {
 
     // set parent vnode. this allows render functions to have access
     // to the data on the placeholder node.
+    // 设置父级的vnode。这允许render函数访问占位符节点上的数据
     vm.$vnode = _parentVnode
     // render self
     let vnode
@@ -97,6 +99,7 @@ export function renderMixin (Vue: Class<Component>) {
       // There's no need to maintain a stack because all render fns are called
       // separately from one another. Nested component's render fns are called
       // when parent component is patched.
+      // 没必要维护一个堆，因为所有的渲染函数都是彼此单独调用的。当父级组件patch时，嵌套组件的渲染函数被调用
       currentRenderingInstance = vm
       vnode = render.call(vm._renderProxy, vm.$createElement)
     } catch (e) {

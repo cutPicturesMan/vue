@@ -70,6 +70,7 @@ export function initLifecycle (vm: Component) {
 
 // 在原型上定义生命周期有关的方法：_update、$forceUpdate、$destroy
 export function lifecycleMixin (Vue: Class<Component>) {
+  // 将虚拟dom节点渲染成真实dom节点
   Vue.prototype._update = function (vnode: VNode, hydrating?: boolean) {
     const vm: Component = this
     const prevEl = vm.$el

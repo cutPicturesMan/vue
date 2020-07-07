@@ -10,14 +10,16 @@ import platformModules from 'web/runtime/modules/index'
 /**
  directive指令模块应该放在最后，在所有内置模块应用之后
 
- [
+ platformModules：[
    attrs,
    klass,
    events,
    domProps,
    style,
    transition,
+ ]
 
+ baseModules：[
    ref,
    directives
  ]

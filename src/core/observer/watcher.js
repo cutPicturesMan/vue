@@ -47,6 +47,7 @@ export default class Watcher {
     expOrFn: string | Function,
     cb: Function,
     options?: ?Object,
+    // 是否是渲染函数的观察者
     isRenderWatcher?: boolean
   ) {
     this.vm = vm
@@ -56,16 +57,22 @@ export default class Watcher {
     vm._watchers.push(this)
     // options
     if (options) {
+      // 是否是深度观测
       this.deep = !!options.deep
+      // 是否是用户定义
       this.user = !!options.user
+      // 是否延迟求值
       this.lazy = !!options.lazy
+      // 数据变化时，是否是同步求值（默认是放入异步队列中下一轮再求值）
       this.sync = !!options.sync
+      // 数据变化后，触发更新前调用
       this.before = options.before
     } else {
       this.deep = this.user = this.lazy = this.sync = false
     }
     this.cb = cb
     this.id = ++uid // uid for batching
+    // 本watcher对象是否激活
     this.active = true
     this.dirty = this.lazy // for lazy watchers
     // 记录新旧watcher收集的Dep

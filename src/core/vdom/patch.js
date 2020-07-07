@@ -75,6 +75,7 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
   return map
 }
 
+// 为不同的平台，创建不同的patch函数
 export function createPatchFunction (backend) {
   let i, j
   const cbs = {}
@@ -91,6 +92,7 @@ export function createPatchFunction (backend) {
       destroy: []
    }
    */
+  // 将每个模块的生命周期方法，按顺序分配到对应的生命周期中
   for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = []
     for (j = 0; j < modules.length; ++j) {
