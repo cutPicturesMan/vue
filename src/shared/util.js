@@ -110,7 +110,7 @@ export function toNumber (val: string): number | string {
  * Make a map and return a function for checking if a key
  * is in that map.
  */
-// 闭包，返回一个函数，用来判断某个值是否在预先设置的字符串集合中
+// 闭包，返回一个函数，用来判断某个值是否在预先设置的字符串集合（一个对象）中
 export function makeMap (
   str: string,
   expectsLowerCase?: boolean

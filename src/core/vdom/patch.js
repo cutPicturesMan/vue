@@ -687,6 +687,10 @@ export function createPatchFunction (backend) {
   // are already rendered on the client or has no need for initialization
   // Note: style is excluded because it relies on initial clone for future
   // deep updates (#7063).
+  // 列出各个模块，这样就可以在融合期间的create钩子函数中跳过这些模块
+  // 因为它们在客户端已经渲染，或者在初始化时没必要渲染
+  // 注意：style被排除在外，因为它依赖于将来深度更新时的初始化克隆
+  // TODO https://github.com/vuejs/vue/issues/7063
   const isRenderedModule = makeMap('attrs,class,staticClass,staticStyle,key')
 
   // 将dom转化成虚拟dom
