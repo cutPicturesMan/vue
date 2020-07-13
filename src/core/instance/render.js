@@ -106,6 +106,7 @@ export function renderMixin (Vue: Class<Component>) {
       handleError(e, vm, `render`)
       // return error render result,
       // or previous vnode to prevent render error causing blank component
+      // 返回错误的render函数结果，或者之前的vnode，防止因为渲染错误导致空的组件
       /* istanbul ignore else */
       if (process.env.NODE_ENV !== 'production' && vm.$options.renderError) {
         try {
@@ -121,10 +122,15 @@ export function renderMixin (Vue: Class<Component>) {
       currentRenderingInstance = null
     }
     // if the returned array contains only a single node, allow it
+    // 由于render函数的返回值由用户自定义，因此返回什么值都有可能
+    // 如果返回的数组只包含一个单一的节点，则允许它，即单一根节点原则
+    // TODO 什么情况下vnode是数组
     if (Array.isArray(vnode) && vnode.length === 1) {
       vnode = vnode[0]
     }
     // return empty vnode in case the render function errored out
+    // 返回的vnode值必须继承自VNode类
+    // 在render函数出错的情况下，返回空的vnode
     if (!(vnode instanceof VNode)) {
       if (process.env.NODE_ENV !== 'production' && Array.isArray(vnode)) {
         warn(
