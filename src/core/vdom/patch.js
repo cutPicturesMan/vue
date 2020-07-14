@@ -821,7 +821,7 @@ export function createPatchFunction (backend) {
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
-    // vnode不存在，则返回
+    // 1、vnode不存在，则销毁旧节点之后返回
     if (isUndef(vnode)) {
       // oldVnode存在，vnode不存在的情况下，需要销毁旧节点oldVnode
       // TODO 啥时候要销毁？
@@ -832,14 +832,14 @@ export function createPatchFunction (backend) {
     let isInitialPatch = false
     const insertedVnodeQueue = []
 
-    // vnode存在，oldVnode不存在，需要创建新节点
+    // 2、vnode存在，oldVnode不存在，需要创建新节点
     if (isUndef(oldVnode)) {
       // empty mount (likely as component), create new root element
       // 空挂载（可能作为组件），创建新的根节点
       isInitialPatch = true
       createElm(vnode, insertedVnodeQueue)
     } else {
-      // vnode、oldVnode均存在
+      // 3、vnode、oldVnode均存在
       const isRealElement = isDef(oldVnode.nodeType)
       // oldVnode不是真实dom && oldVnode与vnode是同一节点，需要比较新旧节点
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
