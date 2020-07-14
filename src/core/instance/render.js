@@ -59,7 +59,9 @@ export function initRender (vm: Component) {
     defineReactive(vm, '$listeners', options._parentListeners || emptyObject, null, true)
   }
 }
-
+// 经过f219bed的优化之后，组件若仅带作用域插槽，则插槽中的子组件不再强制更新，这导致该子组件如果是异步组件，则不会更新
+// 这种情况下，异步组件应该一直使用渲染所有者作为强制更新上下文，而不是使用词法所有者
+// TODO #9432
 export let currentRenderingInstance: Component | null = null
 
 // for testing only
