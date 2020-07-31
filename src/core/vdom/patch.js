@@ -146,7 +146,7 @@ export function createPatchFunction (backend) {
   let creatingElmInVPre = 0
 
   /**
-   * 创建节点
+   * 创建并插入节点
    * @param vnode
    * @param insertedVnodeQueue
    * @param parentElm 待插入父节点
@@ -172,7 +172,7 @@ export function createPatchFunction (backend) {
       // associated DOM element for it.
       // 此 vnode 用于以前的渲染
       // 现在它被用作一个新的节点，当它被当作插入时的参考节点，重写其elm属性，将会导致潜在的patch错误
-      // 相反，在为其创建关联的 DOM 元素之前，我们会按需克隆节点
+      // 相反，在为其创建关联的DOM元素之前，我们会按需克隆节点
       // https://github.com/vuejs/vue/issues/7292
       vnode = ownerArray[index] = cloneVNode(vnode)
     }
