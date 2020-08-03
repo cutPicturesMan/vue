@@ -50,6 +50,7 @@ export function getTagNamespace (tag: string): ?string {
 }
 
 const unknownElementCache = Object.create(null)
+// 是否是浏览器未知的元素
 export function isUnknownElement (tag: string): boolean {
   /* istanbul ignore if */
   if (!inBrowser) {

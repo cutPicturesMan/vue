@@ -83,7 +83,6 @@ export function createPatchFunction (backend) {
   const { modules, nodeOps } = backend
 
   /**
-   通过虚拟DOM的生命钩子函数，为dom添加attr、class、style等属性
    cbs: {
       create: [attrs.create, klass.create, ..., directive.create],
       activate: [],
@@ -92,9 +91,10 @@ export function createPatchFunction (backend) {
       destroy: []
    }
    */
-  // 将每个模块的生命周期方法，按顺序分配到对应的生命周期中
+  // 1、生成组件的生命周期处理函数对象
   for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = []
+    // 将每个子模块（负责处理attr、class、style等属性）的钩子函数，添加到组件对应的生命周期处理函数数组中
     for (j = 0; j < modules.length; ++j) {
       if (isDef(modules[j][hooks[i]])) {
         cbs[hooks[i]].push(modules[j][hooks[i]])
@@ -127,7 +127,7 @@ export function createPatchFunction (backend) {
   // 判断未知的节点
   function isUnknownElement (vnode, inVPre) {
     return (
-      // 排除<pre>标签
+      // 排除<pre>及其子标签
       !inVPre &&
       // TODO 排除命名空间？
       !vnode.ns &&
@@ -178,7 +178,7 @@ export function createPatchFunction (backend) {
       vnode = ownerArray[index] = cloneVNode(vnode)
     }
 
-    // 为了检查是否是进入transition
+    // TODO 为了检查是否是进入transition
     vnode.isRootInsert = !nested // for transition enter check
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
@@ -231,6 +231,7 @@ export function createPatchFunction (backend) {
       } else {
         // 元素节点有可能还有子节点，因此要循环创建子节点
         createChildren(vnode, children, insertedVnodeQueue)
+        // 由于vnode.data对象中包含了其dom节点的属性数据，如果存在vnode.data，有可能需要处理每个属性的、组件（如果该dom是组件）的create钩子函数
         if (isDef(data)) {
           invokeCreateHooks(vnode, insertedVnodeQueue)
         }
@@ -319,14 +320,17 @@ export function createPatchFunction (backend) {
     insert(parentElm, vnode.elm, refElm)
   }
 
-  // 将节点elm插入到父节点parent内的ref节点之前
+  // 将节点elm插入到父节点parent内
   function insert (parent, elm, ref) {
     if (isDef(parent)) {
       if (isDef(ref)) {
+        // 2、指定位置插入（插入到parent内的直接子节点ref之前）
+        // TODO 如果ref不是直接子节点，是否会插入失败
         if (nodeOps.parentNode(ref) === parent) {
           nodeOps.insertBefore(parent, elm, ref)
         }
       } else {
+        // 1、正常插入（插入到parent子节点列表的最后一个）
         nodeOps.appendChild(parent, elm)
       }
     }
@@ -358,13 +362,16 @@ export function createPatchFunction (backend) {
     return isDef(vnode.tag)
   }
 
+  // 调用create钩子函数
   function invokeCreateHooks (vnode, insertedVnodeQueue) {
+    // 1、先调用dom的每个子模块的create处理函数
     for (let i = 0; i < cbs.create.length; ++i) {
       cbs.create[i](emptyNode, vnode)
     }
-    // TODO hook的create、insert函数有什么作用？
+    // 2、如果该dom是组件的话，再调用对应的钩子函数
     i = vnode.data.hook // Reuse variable
     if (isDef(i)) {
+      // 由于不同组件的所需要的钩子函数不同，create、insert钩子函数有可能不存在，因此要判断下
       if (isDef(i.create)) i.create(emptyNode, vnode)
       if (isDef(i.insert)) insertedVnodeQueue.push(vnode)
     }
