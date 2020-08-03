@@ -173,7 +173,7 @@ export function createPatchFunction (backend) {
       // 此 vnode 用于以前的渲染
       // 现在它被用作一个新的节点，当它被当作插入时的参考节点，重写其elm属性，将会导致潜在的patch错误
       // 相反，在为其创建关联的DOM元素之前，我们会按需克隆节点
-      // https://github.com/vuejs/vue/issues/7292
+      // TODO https://github.com/vuejs/vue/issues/7292
       vnode = ownerArray[index] = cloneVNode(vnode)
     }
 
@@ -228,7 +228,7 @@ export function createPatchFunction (backend) {
           insert(parentElm, vnode.elm, refElm)
         }
       } else {
-        // 循环创建子节点 - 子子节点
+        // 元素节点有可能还有子节点，因此要循环创建子节点
         createChildren(vnode, children, insertedVnodeQueue)
         if (isDef(data)) {
           invokeCreateHooks(vnode, insertedVnodeQueue)
@@ -240,11 +240,11 @@ export function createPatchFunction (backend) {
         creatingElmInVPre--
       }
     } else if (isTrue(vnode.isComment)) {
-      // 评论节点
+      // 注释节点，不会有子节点了，可以直接插入
       vnode.elm = nodeOps.createComment(vnode.text)
       insert(parentElm, vnode.elm, refElm)
     } else {
-      // 文本节点
+      // 文本节点，不会有子节点了，可以直接插入
       vnode.elm = nodeOps.createTextNode(vnode.text)
       insert(parentElm, vnode.elm, refElm)
     }

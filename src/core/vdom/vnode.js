@@ -1,8 +1,11 @@
 /* @flow */
 
 export default class VNode {
+  // 标签名
   tag: string | void;
+  // 虚拟节点有关的数据，class、style等
   data: VNodeData | void;
+  // 子节点数组
   children: ?Array<VNode>;
   text: string | void;
   elm: Node | void;
