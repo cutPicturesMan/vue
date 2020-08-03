@@ -84,7 +84,7 @@ export function createPatchFunction (backend) {
 
   /**
    通过虚拟DOM的生命钩子函数，为dom添加attr、class、style等属性
-   {
+   cbs: {
       create: [attrs.create, klass.create, ..., directive.create],
       activate: [],
       update: [],
@@ -143,6 +143,7 @@ export function createPatchFunction (backend) {
     )
   }
 
+  // 该变量有何作用？
   let creatingElmInVPre = 0
 
   /**
@@ -331,7 +332,7 @@ export function createPatchFunction (backend) {
     }
   }
 
-  // 创建子节点
+  // 循环创建子节点
   function createChildren (vnode, children, insertedVnodeQueue) {
     // vnode.children是数组，则需要循环创建子元素
     if (Array.isArray(children)) {
@@ -343,10 +344,9 @@ export function createPatchFunction (backend) {
         createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i)
       }
     } else if (isPrimitive(vnode.text)) {
-      // TODO 什么情况下，vnode.tag、vnode.text同时存在？按我的理解，<div>123</div>的123实际上被转为vnode.children，永远不可能存在vnode.text
-      // TODO 为什么vnode.text限制为基本原始类型？
-      // TODO 梳理下html -> 虚拟dom的过程
-      // https://github.com/vuejs/vue/issues/7157
+      // 子元素仅为文本节点的vnode，可以将文本直接写在vnode.text上，而不用写在子节点数组里，就会插入到父节点中，提供一种简便的处理方法
+      // TODO 本场景啥时候会遇到？
+      // vnode.text有可能是Symbol类型，因此要手动转为String
       nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)))
     }
   }
@@ -362,6 +362,7 @@ export function createPatchFunction (backend) {
     for (let i = 0; i < cbs.create.length; ++i) {
       cbs.create[i](emptyNode, vnode)
     }
+    // TODO hook的create、insert函数有什么作用？
     i = vnode.data.hook // Reuse variable
     if (isDef(i)) {
       if (isDef(i.create)) i.create(emptyNode, vnode)
