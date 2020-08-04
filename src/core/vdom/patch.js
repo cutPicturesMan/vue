@@ -131,6 +131,7 @@ export function createPatchFunction (backend) {
       !inVPre &&
       // TODO 排除命名空间？
       !vnode.ns &&
+      // 排除忽略列表中的标签
       !(
         config.ignoredElements.length &&
         config.ignoredElements.some(ignore => {
@@ -143,7 +144,8 @@ export function createPatchFunction (backend) {
     )
   }
 
-  // 该变量有何作用？
+  // 创建<pre>标签时，该变量标识加1，这样循环子节点的时候，可以通过该变量 > 0判断是否在<pre>标签中
+  // 等到<pre>标签创建完毕，该变量标识再减1
   let creatingElmInVPre = 0
 
   /**
