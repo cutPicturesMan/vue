@@ -6,6 +6,7 @@ import { makeMap } from 'shared/util'
 export const namespaceMap = {
   svg: 'http://www.w3.org/2000/svg',
   math: 'http://www.w3.org/1998/Math/MathML'
+  // TODO jsfiddle.net访问不了，稍后看 https://github.com/vuejs/vue/issues/4478
 }
 
 export const isHTMLTag = makeMap(
@@ -25,6 +26,7 @@ export const isHTMLTag = makeMap(
 // this map is intentionally selective, only covering SVG elements that may
 // contain child elements.
 // 此映射是有意选择的，仅覆盖可能包含子元素的SVG元素
+// TODO jsfiddle.net访问不了，稍后看 https://github.com/vuejs/vue/issues/4813
 export const isSVG = makeMap(
   'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' +
   'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' +
