@@ -263,13 +263,15 @@ function applyNS (vnode, ns, force) {
   if (vnode.tag === 'foreignObject') {
     // use default namespace inside foreignObject
     ns = undefined
+    // 如果子元素的命名空间已设置，则强制还原为默认命名空间
+    // TODO <foreignObject>下的<p>命名空间错误的显示为svg：https://github.com/vuejs/vue/issues/6642
     force = true
   }
   // 设置子元素的命名空间
   if (isDef(vnode.children)) {
     for (let i = 0, l = vnode.children.length; i < l; i++) {
       const child = vnode.children[i]
-      // 存在子标签 && （子标签的ns未定义 || 强制设置非<svg>子标签ns为默认值）
+      // 存在子标签 && （子标签的ns未定义 || 子标签的ns已定义，则强制设置<foreignObject>下的非<svg>子标签ns为undefined）
       if (isDef(child.tag) && (
         isUndef(child.ns) || (isTrue(force) && child.tag !== 'svg'))) {
         applyNS(child, ns, force)
