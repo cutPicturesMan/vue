@@ -53,7 +53,7 @@ export default class VNode {
     this.text = text
     // 当前虚拟节点对应的真实dom节点
     this.elm = elm
-    // 名字空间
+    // 命名空间
     this.ns = undefined
     // 当前节点所处的Vue上下文环境，即父级Vue对象
     // Vue上下文环境对象由new Vue()以及创建组件时的Vue.extend()产生

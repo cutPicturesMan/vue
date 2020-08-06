@@ -124,14 +124,16 @@ export function createPatchFunction (backend) {
     }
   }
 
-  // 判断未知的节点
+  // 判断未知的节点，分为2种判断：
+  // 1、通过其所处的dom结构位置快速判断
+  // 2、直接判断自身是否是未知节点
   function isUnknownElement (vnode, inVPre) {
     return (
-      // 排除<pre>及其子标签
+      // 1.1、排除<pre>及其dom结构包含的子标签
       !inVPre &&
-      // TODO 排除命名空间？
+      // 1.2、排除<svg>、<math>标签本身，以及它们dom结构包含的子标签（vue中含有命名空间的标签只有这些）
       !vnode.ns &&
-      // 排除忽略列表中的标签
+      // 2.1、排除config的忽略列表中的标签
       !(
         config.ignoredElements.length &&
         config.ignoredElements.some(ignore => {
@@ -140,6 +142,7 @@ export function createPatchFunction (backend) {
             : ignore === vnode.tag
         })
       ) &&
+      // 2.2、判断这个标签是否是未知标签
       config.isUnknownElement(vnode.tag)
     )
   }
