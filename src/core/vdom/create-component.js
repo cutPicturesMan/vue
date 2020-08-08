@@ -37,6 +37,8 @@ import {
 const componentVNodeHooks = {
   init (vnode: VNodeWithData, hydrating: boolean): ?boolean {
     if (
+      // 组件已经实例化 && 组件还未销毁 && 是keepAlive组件
+      // TODO 为什么要把keepAlive提到前面判断
       vnode.componentInstance &&
       !vnode.componentInstance._isDestroyed &&
       vnode.data.keepAlive
