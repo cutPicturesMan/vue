@@ -80,6 +80,7 @@ export function _createElement (
   normalizationType?: number
 ): VNode | Array<VNode> {
   // 如果data已经observer了，则创建并返回空节点的vnode
+  // TODO 为何用已经observed的对象作为data会造成渲染死循环？
   if (isDef(data) && isDef((data: any).__ob__)) {
     process.env.NODE_ENV !== 'production' && warn(
       `Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` +
