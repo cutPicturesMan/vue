@@ -38,7 +38,7 @@ export function isPrimitive (value: any): boolean %checks {
  * Quick object check - this is primarily used to tell
  * Objects from primitive values when we know the value
  * is a JSON-compliant type.
- * 快速对象检测，主要用于区别对象和基本类型值
+ * 快速对象检测，主要用于区别是对象（或数组），还是基本类型值
  * 待检测值的类型为符合JSON序列化的类型
  */
 export function isObject (obj: mixed): boolean %checks {
@@ -256,6 +256,7 @@ export function extend (to: Object, _from: ?Object): Object {
 
 /**
  * Merge an Array of Objects into a single Object.
+ * 将数组中所有对象的属性合并到一个单一对象中
  */
 export function toObject (arr: Array<any>): Object {
   const res = {}

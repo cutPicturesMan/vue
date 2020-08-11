@@ -6,18 +6,19 @@ import { makeMap } from 'shared/util'
 // during template compilation
 export const isReservedAttr = makeMap('style,class')
 
-// attributes that should be using props for binding
 /**
  判断是否读取属性的实时值，而不是读取属性的初始值
 
  假设：<input value="name" />
  1、获取value属性的初始值：
-    HTMLInputElement.getAttribute('value') // returns "Name:"
-    HTMLInputElement.defaultValue          // returns "Name:"
+ HTMLInputElement.getAttribute('value') // returns "Name:"
+ HTMLInputElement.defaultValue          // returns "Name:"
  2、获取value属性的实时值：
-    HTMLInputElement.value                 // returns "zz"
+ HTMLInputElement.value                 // returns "zz"
  */
 // https://github.com/vuejs/vue/issues/4530
+// attributes that should be using props for binding
+// 应该用props的方式来绑定的属性
 const acceptValue = makeMap('input,textarea,option,select,progress')
 export const mustUseProp = (tag: string, type: ?string, attr: string): boolean => {
   return (
