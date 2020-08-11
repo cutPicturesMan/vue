@@ -63,6 +63,7 @@ export function bindObjectProps (
         const camelizedKey = camelize(key)
         const hyphenatedKey = hyphenate(key)
         // v-bind绑定的属性不与dom属性重名，才进行赋值
+        // TODO 这种情况，指v-model语法糖的:value会覆盖value的值吗？<input type="checkbox" id="jack" value="Jack" v-model="checkedNames">
         if (!(camelizedKey in hash) && !(hyphenatedKey in hash)) {
           hash[key] = value[key]
 

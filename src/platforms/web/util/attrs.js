@@ -19,6 +19,7 @@ export const isReservedAttr = makeMap('style,class')
 // https://github.com/vuejs/vue/issues/4530
 // attributes that should be using props for binding
 // 应该用props的方式来绑定的属性
+// TODO https://stackoverflow.com/questions/6003819/what-is-the-difference-between-properties-and-attributes-in-html#answer-6004028
 const acceptValue = makeMap('input,textarea,option,select,progress')
 export const mustUseProp = (tag: string, type: ?string, attr: string): boolean => {
   return (
