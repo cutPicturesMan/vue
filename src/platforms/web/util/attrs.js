@@ -6,23 +6,43 @@ import { makeMap } from 'shared/util'
 // during template compilation
 export const isReservedAttr = makeMap('style,class')
 
-/**
- 判断是否读取属性的实时值，而不是读取属性的初始值
-
- 假设：<input value="name" />
- 1、获取value属性的初始值：
- HTMLInputElement.getAttribute('value') // returns "Name:"
- HTMLInputElement.defaultValue          // returns "Name:"
- 2、获取value属性的实时值：
- HTMLInputElement.value                 // returns "zz"
- */
-// https://github.com/vuejs/vue/issues/4530
 // attributes that should be using props for binding
-// 应该用props的方式来绑定的属性
+// 用DOM property的方式来绑定属性，这样才能够获取该属性的实时值
+// 如果用HTML attribute的方式绑定属性，只能获取到该属性的初始值
 // TODO https://stackoverflow.com/questions/6003819/what-is-the-difference-between-properties-and-attributes-in-html#answer-6004028
+/**
+ TODO 看完processAttr之后，解决下面问题：当btn2切换到btn1时（btn1的domProps属性为空，attr.value有值），其按钮内的文案没了？是因为这两个按钮的vnode重用了？
+ const vm = new Vue({
+  data: {
+    message: 'Hello Vue.js!',
+    show: true ,
+    btnValue1: 'button 1',
+    btnValue2: 'button 2'
+  },
+  methods: {
+    show1 () {
+      this.show=!this.show;
+      this.$nextTick().then(()=>{
+        const children = this._vnode.children;
+        console.log(children[children.length-1].data);
+      })
+    }
+  },
+  template: `
+    <div>
+      <p>{{ message }}</p>
+      <input type="button" @click="show1" value="Toggle">（Switch multiple times to see the results）
+      <p>===========scene one=============</p>
+      <input v-if="show" type="button" value="btnValue1" data-ttt="1">
+      <input v-else type="button" :value="btnValue2" data-ttt="2">
+    </div>
+  `
+}).$mount('#app1')
+ */
 const acceptValue = makeMap('input,textarea,option,select,progress')
 export const mustUseProp = (tag: string, type: ?string, attr: string): boolean => {
   return (
+    // button按钮的值不用获取实时值，因此排除
     (attr === 'value' && acceptValue(tag)) && type !== 'button' ||
     (attr === 'selected' && tag === 'option') ||
     (attr === 'checked' && tag === 'input') ||

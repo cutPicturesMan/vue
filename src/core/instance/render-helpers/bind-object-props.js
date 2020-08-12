@@ -42,7 +42,8 @@ export function bindObjectProps (
       }
       let hash
       for (const key in value) {
-        // 由于v-bind可以任意指定绑定的属性名，因此有可能存在与现有dom属性重名的情况，遇到这种情况时，直接跳过不赋值。现有dom属性有如下几种情况
+        // 由于v-bind可以任意指定绑定的属性名，因此有可能存在与现有dom属性（即参数data）重名的情况，遇到这种情况时，直接跳过不赋值
+        // 现有dom属性有如下3种情况：
         // 1、保留属性
         // 1) class、style属性是html的保留属性
         // 2) vue内部使用到的属性
@@ -55,15 +56,17 @@ export function bindObjectProps (
         } else {
           const type = data.attrs && data.attrs.type
           hash = asProp || config.mustUseProp(tag, type, key)
-            // 2、以props方式渲染的属性
+            // 2、以DOM property的方式渲染的属性
             ? data.domProps || (data.domProps = {})
-            // 3、常规属性，都放在data.attrs上
+            // 3、以HTML attribute的方式渲染的属性
             : data.attrs || (data.attrs = {})
         }
         const camelizedKey = camelize(key)
         const hyphenatedKey = hyphenate(key)
         // v-bind绑定的属性不与dom属性重名，才进行赋值
         // TODO 这种情况，指v-model语法糖的:value会覆盖value的值吗？<input type="checkbox" id="jack" value="Jack" v-model="checkedNames">
+        // <WelcomeMessage v-bind="{ greetingText: hello }" greeting-text="hi"/>
+        // 待绑定的key、其驼峰式写法不存在于现有attr && 待绑定的key、其短横线写法不存在于现有attr，才进行赋值
         if (!(camelizedKey in hash) && !(hyphenatedKey in hash)) {
           hash[key] = value[key]
 
