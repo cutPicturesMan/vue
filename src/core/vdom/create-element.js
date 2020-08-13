@@ -38,7 +38,7 @@ const ALWAYS_NORMALIZE = 2
              tag: 'span',
              data: {
                  class: 'demo'
-             }
+             },
              text: 'hello,VNode'
          }
      ]
@@ -54,8 +54,7 @@ export function createElement (
   normalizationType: any,
   alwaysNormalize: boolean
 ): VNode | Array<VNode> {
-  // 兼容data不传值的情况
-  // 当data不传值时，原本data位置的值（Object类型）变成了children的值（Array | String），其后的所有参数前移一位
+  // 【兼容data不传值的情况】当data不传值时，原本data位置的值（Object类型）变成了children的值（Array | String），其后的所有参数前移一位
 
   // 虽然文档上说children值的类型其中之一是String，但实际上支持所有基本类型，因为基本类型都能通过String()函数转化为String类型
   // https://cn.vuejs.org/v2/guide/render-function.html#createElement-参数
@@ -91,27 +90,9 @@ export function _createElement (
   }
 
   // object syntax in v-bind
-  // 如果是通过render函数创建的实例，需要特殊处理下data参数中的is
-  // https://github.com/vuejs/vue/issues/5881
-  /**
-   TODO 通过options创建的vue，其options.data.is在哪里处理掉的？为何到这里没有了？
-
-   new Vue({
-    template: '<strong>{{is}}</strong>',
-    data: {
-      is: 'ccc'
-    }
-  }).$mount('#app')
-
-   new Vue({
-    render(h){
-      return h(
-        'div', {
-          is: 'abc'
-        })
-    }
-  }).$mount('#app')
-   */
+  // 如果html标签存在is属性，则将其作为标签名
+  // <div :is="ttt">test</div>
+  // https://cn.vuejs.org/v2/guide/components.html#动态组件
   if (isDef(data) && isDef(data.is)) {
     tag = data.is
   }
@@ -124,11 +105,16 @@ export function _createElement (
   // warn against non-primitive key
   // 对于不是基本类型的key值，进行提示
   // TODO 文档上说key值限制为String/Number，这里为何却是检测范围更大的基本类型？
+  // 是因为在checkDuplicateKeys函数中，data.key作为对象的key值，会被转成String/Number，而Object、Null、Undefined转了之后无法分辨是否是同一个值？
+  // 属性名称必须是字符串或符号 Symbol。这意味着非字符串对象不能用来作为一个对象属性的键。任何非字符串对象，包括 Number，都会通过 toString 方法，被转换成一个字符串
+  // TODO 归纳下对象属性名的存取限制
+  // TODO https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Working_with_Objects
+  // TODO https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Property_Accessors
   if (process.env.NODE_ENV !== 'production' &&
     isDef(data) && isDef(data.key) && !isPrimitive(data.key)
   ) {
-    // 这个if在非weex环境都会进入
     if (!__WEEX__ || !('@binding' in data.key)) {
+      // 这个if在非weex环境都会进入
       warn(
         'Avoid using non-primitive value as key, ' +
         'use string/number value instead.',

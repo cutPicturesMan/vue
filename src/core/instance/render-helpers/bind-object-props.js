@@ -14,6 +14,7 @@ import {
 /**
  * Runtime helper for merging v-bind="object" into a VNode's data.
  * 运行时帮助程序，专门用于将v-bind绑定的对象合并到VNode的data属性上
+ * 如果v-bind对象的属性已经在html上有相同的属性（或驼峰式、短横线式写法），则不赋值
  * @param data    dom的属性对象，例如{class: "hello", attrs: {"id": "foo"}}，详见/Users/zhangzhen11/z/github/vue/src/compiler/codegen/index.js，genData函数
  * @param tag
  * @param value   v-bind的值
@@ -70,6 +71,7 @@ export function bindObjectProps (
         if (!(camelizedKey in hash) && !(hyphenatedKey in hash)) {
           hash[key] = value[key]
 
+          // 添加对.sync修饰符的支持
           if (isSync) {
             const on = data.on || (data.on = {})
             on[`update:${key}`] = function ($event) {
