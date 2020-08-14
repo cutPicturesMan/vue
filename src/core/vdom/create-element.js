@@ -123,20 +123,60 @@ export function _createElement (
     }
   }
 
-  // support single function children as default scoped slot
+
   /**
-   * 如果children只包含一个函数，则作为默认的slot
-   * https://cn.vuejs.org/v2/guide/render-function.html#插槽
-   props: ['message'],
-   render: function (createElement) {
-     // `<div><slot :text="message"></slot></div>`
-     return createElement('div', [
-       this.$scopedSlots.default({
-         text: this.message
-       })
-     ])
-   }
+   TODO 介绍下面的概念
+   1、插槽<slot>的用法
+   2、具名插槽
+   3、作用域插槽：让插槽内容能够访问子组件中才有的数据
+   4、render函数中的slot写法：https://cn.vuejs.org/v2/guide/render-function.html#插槽
+
+   new Vue({
+      template: `<div>
+        <test>
+          <template v-slot:header>
+            <h1>Here might be a page title</h1>
+          </template>
+
+          <p>A paragraph for the main content.</p>
+          <p>And another one.</p>
+
+          <template v-slot:footer="{ cname }">
+            <div>作用域插槽的值：{{cname}}</div>
+            <p>Here's some contact info</p>
+          </template>
+        </test>
+      </div>`,
+      components: {
+        test: {
+          template: `<div>
+            <div class="container">
+              <header>
+                <div>header----------</div>
+                <slot name="header"></slot>
+              </header>
+              <main>
+                <div>main----------</div>
+                <slot></slot>
+              </main>
+              <footer>
+                <div>footer----------{{cname}}</div>
+                <slot name="footer" :cname="cname"></slot>
+              </footer>
+            </div>
+          </div>`,
+          data () {
+            return {
+              cname: 'inner'
+            };
+          }
+        }
+      },
+    }).$mount('#app1')
    */
+
+  // support single function children as default scoped slot
+  // TODO【为何要这么做】如果children数组的第一个元素为函数时，将其作为默认的作用域插槽，并删除所有子节点
   if (Array.isArray(children) &&
     typeof children[0] === 'function'
   ) {
