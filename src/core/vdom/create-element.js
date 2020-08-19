@@ -194,14 +194,15 @@ export function _createElement (
   let vnode, ns
   if (typeof tag === 'string') {
     let Ctor
-    // 如果父级有命名空间，则直接使用父级的命名空间
-    // 对于<a>标签来说，html和svg中同时存在，单靠config.getTagNamespace()无法判断当前的命名空间，需要靠父级来判断
+    // 获取标签命名空间，有以下一种特殊情况：当存在父级命名空间时，则直接使用父级的命名空间
+    // 对于组件内的<a>标签来说，由于组件有可能渲染在常规标签或<svg>标签中，单靠config.getTagNamespace()无法判断当前<a>标签的命名空间，需要靠父级来判断
     // https://github.com/vuejs/vue/issues/6506
     // https://developer.mozilla.org/zh-CN/docs/Web/SVG/Element/a
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag)
     // 如果tag是平台保留标签，则直接创建VNode对象
     if (config.isReservedTag(tag)) {
       // platform built-in elements
+      // .native修饰符是用在组件上，不能用在原生html标签上
       if (process.env.NODE_ENV !== 'production' && isDef(data) && isDef(data.nativeOn)) {
         warn(
           `The .native modifier for v-on is only valid on components but it was used on <${tag}>.`,
@@ -214,6 +215,8 @@ export function _createElement (
       )
     } else if ((!data || !data.pre) && isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
       // component
+      // 渲染组件
+      // 跳过v-pre内的节点 && 该节点名称在局部组件、全局组件中有找到对应的短横线、驼峰式名称，则渲染为组件
       /**
        在options.components以及全局组件列表中，查找对应的自定义组件名，如果找到了则实例化
        要避免对处于<pre>块或者v-pre块中的组件进行解析，处在pre中的元素，data.pre为true
@@ -244,7 +247,6 @@ export function _createElement (
       // parent normalizes children
       // 未知的或未列出命名空间的标签
       // 在运行时检查命名空间，因为当父级规范化子级的时候，有可能赋值命名空间
-      // TODO 什么是命名空间？runtime为什么会有可能赋值命名空间？
       vnode = new VNode(
         tag, data, children,
         undefined, undefined, context
