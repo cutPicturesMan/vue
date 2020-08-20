@@ -270,16 +270,26 @@ export function _createElement (
     vnode = createComponent(tag, data, context, children)
   }
   // TODO https://github.com/vuejs/vue/issues/7292#issue-283588912
-  // options.render()返回的vnode是数组，则直接返回
+  /*
+   html标签可能为：
+    1、浏览器内置标签
+    2、组件标签
+      2.1 常规组件
+      2.2 异步组件
+      2.3 函数式组件
+    3、未知标签
+   */
+  // 函数式组件有可能返回数组格式的vnode
+  // TODO 由于函数式组件没有其他需要处理的，因此直接返回vnode？
   if (Array.isArray(vnode)) {
     return vnode
   } else if (isDef(vnode)) {
     // vnode有值，则处理
-    // options.render()有可能返回null，这里必须同时判断undefined和null
     if (isDef(ns)) applyNS(vnode, ns)
     if (isDef(data)) registerDeepBindings(data)
     return vnode
   } else {
+    // vnode为null、undefined，则创建空节点
     return createEmptyVNode()
   }
 }
@@ -300,7 +310,9 @@ function applyNS (vnode, ns, force) {
   if (isDef(vnode.children)) {
     for (let i = 0, l = vnode.children.length; i < l; i++) {
       const child = vnode.children[i]
-      // 存在子标签 && （子标签的ns未定义 || 子标签的ns已定义，则强制设置<foreignObject>下的非<svg>子标签ns为undefined）
+      // 子标签存在的情况下，进行如下2种处理：
+      // 1、子标签的ns未定义，则设置为对应的ns
+      // 2、该子标签的ns已定义，且处于<foreignObject>下 && 该子标签不是<svg>，则强制设置命名空间为undefined。即将<foreignObject>下的非<svg>子标签的ns设置为undefined
       if (isDef(child.tag) && (
         isUndef(child.ns) || (isTrue(force) && child.tag !== 'svg'))) {
         applyNS(child, ns, force)

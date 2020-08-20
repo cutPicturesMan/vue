@@ -674,6 +674,15 @@ export function resolveAsset (
   const assets = options[type]
   // check local registration variations first
   // 在options.components对象本身上依次查找：my-component -> myComponent -> MyComponent
+
+  /**
+    html大小写不敏感，js大小写敏感，而js可以通过es6对象属性简写进行组件的定义，因此要查找其大小写形式
+    const vm = new Vue({
+      template: `<foo><bar slot="test"/></foo>`,
+      components: { Foo, Bar }
+    }).$mount()
+   */
+
   // 要先找对象实例上的组件多种名称，实在找不到再去原型链上找
   // my-component
   if (hasOwn(assets, id)) return assets[id]

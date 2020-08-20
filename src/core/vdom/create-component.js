@@ -122,6 +122,7 @@ const hooksToMerge = Object.keys(componentVNodeHooks)
 /**
  创建组件，参数Ctor最终将被Vue.extend()处理
  */
+// TODO 等到Vue实例化的过程都看完之后，再来看涉及组件的实例化过程
 export function createComponent (
   Ctor: Class<Component> | Function | Object | void,
   data: ?VNodeData,

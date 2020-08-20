@@ -11,16 +11,24 @@ const seenObjects = new Set()
  * getters, so that every nested property inside the object
  * is collected as a "deep" dependency.
  */
-// 递归地访问对象的每个属性。通过每个属性的getter，将当前watcher添加到每个属性（对象/数组）的全局dep中
+// 递归地访问一个对象的每个属性，调用属性中所有转化过的getters
+// 这样对象中每个嵌套的属性都会被当作深度依赖而收集
 export function traverse (val: any) {
   _traverse(val, seenObjects)
+  // 使用完之后释放掉
   seenObjects.clear()
 }
 
+/**
+ * @param val
+ * @param seen 全局变量用参数的形式传入 TODO 这么做的好处是？
+ * @private
+ */
 function _traverse (val: any, seen: SimpleSet) {
   let i, keys
   const isA = Array.isArray(val)
   // 既不是数组，也不是对象 || 所有属性不可配置 || 从VNode节点继承
+  // TODO 哪种return方式更快？https://github.com/vuejs/vue/pull/4069
   if ((!isA && !isObject(val)) || Object.isFrozen(val) || val instanceof VNode) {
     return
   }
