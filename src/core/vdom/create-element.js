@@ -324,8 +324,34 @@ function applyNS (vnode, ns, force) {
 // ref #5318
 // necessary to ensure parent re-render when deep bindings like :style and
 // :class are used on slot nodes
-// 在slot节点上使用深度绑定（如:style、:class）时，必须确保父元素重新渲染
+// 在slot节点上的:style、:class如果使用深度绑定（即直接赋值为一个对象值），必须确保父元素重新渲染
 // test/unit/features/directives/style.spec.js
+
+/**
+ * TODO 这么处理难道是因为html属性绑定为对象时，值会被转为[object Object]，而vue中要支持:style、:class的对象绑定，因此要这么特殊处理？看完vue对html的属性解析之后，再来看这个问题
+const vm = new Vue({
+  template: `<test>
+      <p :style="style"/>
+      // 如果没有进行registerDeepBindings，则style的更新不会触发父级重新渲染。加上下面这行，则会触发重新渲染
+      <span :style="{color: style.color}"/>
+    </test>`,
+  data: {
+    style: { color: 'red' }
+  },
+  components: {
+    test: {
+      template: `<div><slot/></div>`
+    }
+  }
+}).$mount('#app1')
+ // red
+ console.log(vm.$el.children[0].style.color)
+ vm.style.color = 'green'
+ setTimeout(() => {
+  // 'green'
+  console.log(vm.$el.children[0].style.color)
+})
+ */
 function registerDeepBindings (data) {
   if (isObject(data.style)) {
     traverse(data.style)
