@@ -38,7 +38,14 @@ Vue.prototype.__patch__ = inBrowser ? patch : noop
 
 // public mount method
 // 公共的mount方法，不带compiler编译器
-// TODO
+/**
+data属性变动如何带动重新渲染页面？
+-> $mount
+-> mountComponent
+-> 通过new Watcher调用updateComponent函数进行页面渲染，将当前页面的Watcher设为Dep.target
+-> 当前页面的Watcher会立即运行一次由于updateComponent函数，其中的_render函数中会访问data属性，data属性的get访问器属性通过Dep.target知道了依赖收集方是谁
+-> 通过dep.depend()函数中的Dep.target.addDep(this)，将依赖收集方放入到data属性的dep.subs列表中。data属性有变化时（通过set访问器属性改变），循环dep.subs列表进行通知，即调用watcher的update方法进行队列更新
+ */
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean

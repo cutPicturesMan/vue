@@ -68,6 +68,7 @@ const targetStack = []
 
 export function pushTarget (target: ?Watcher) {
   targetStack.push(target)
+  // 给Dep构造函数添加一个target属性。new Dep()创建的新对象不会有这个target属性
   Dep.target = target
 }
 

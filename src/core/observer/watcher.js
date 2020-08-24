@@ -140,6 +140,7 @@ export default class Watcher {
       popTarget()
       // TODO 为什么Dep中的targetStack要改成数组？
       // #3133
+      // TODO get函数调用之后为什么要删除依赖
       this.cleanupDeps()
     }
     return value
@@ -149,7 +150,8 @@ export default class Watcher {
    * Add a dependency to this directive.
    */
   // 将Dep添加到当前Watcher的newDeps中
-  // 将当前Watcher添加到Dep.subs中
+  // 将当前Watcher添加到响应式属性的dep.subs中，数据变动时通过循环变动属性的dep.subs进行通知
+  // TODO 为什么也要将响应式属性的对应Dep添加到当前Watcher的newDeps中，有啥用？
   addDep (dep: Dep) {
     const id = dep.id
     if (!this.newDepIds.has(id)) {
