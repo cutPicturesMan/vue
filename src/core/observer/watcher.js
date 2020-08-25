@@ -140,7 +140,27 @@ export default class Watcher {
       popTarget()
       // TODO 为什么Dep中的targetStack要改成数组？
       // #3133
-      // TODO get函数调用之后为什么要删除依赖
+      // 在本函数调用到这里时，data属性有可能发生变化，导致Watcher所订阅的属性dep变多或者变少，因此要清理下
+      /**
+       const vm = new Vue({
+          data: {
+            obj: {
+              name: 'zz'
+            }
+          },
+          template: `<div>{{obj.name}}</div>`,
+          mounted () {
+            setTimeout(() => {
+              // this.a = 2;
+              // this.obj.name = 2;
+
+              // TODO 将对象整个替换掉，其各个属性的dep还会存在内存中么？会有内存泄漏的风险么？
+              this.obj = 2;
+              // console.log(vm.$data.obj.name);
+            }, 1000)
+          }
+        }).$mount('#app1')
+       */
       this.cleanupDeps()
     }
     return value
@@ -149,15 +169,14 @@ export default class Watcher {
   /**
    * Add a dependency to this directive.
    */
-  // 将Dep添加到当前Watcher的newDeps中
-  // 将当前Watcher添加到响应式属性的dep.subs中，数据变动时通过循环变动属性的dep.subs进行通知
-  // TODO 为什么也要将响应式属性的对应Dep添加到当前Watcher的newDeps中，有啥用？
   addDep (dep: Dep) {
     const id = dep.id
     if (!this.newDepIds.has(id)) {
+      // 2、将响应式属性的对应Dep添加到当前Watcher的newDeps中，当watcher不再订阅某属性的dep时，可以通过其dep.removeSub将本watcher移除
       this.newDepIds.add(id)
       this.newDeps.push(dep)
       if (!this.depIds.has(id)) {
+        // 1、将当前Watcher添加到响应式属性的dep.subs中，数据变动时通过循环变动属性的dep.subs进行通知
         dep.addSub(this)
       }
     }
@@ -171,7 +190,7 @@ export default class Watcher {
     let i = this.deps.length
     while (i--) {
       const dep = this.deps[i]
-      // 如果上次收集的Dep不再存在，则移除当前watch在该Dep下的订阅
+      // 当前watcher不再订阅某属性的dep，则将watcher从该属性的dep.subs中移除，防止下一次被调用watcher.run
       if (!this.newDepIds.has(dep.id)) {
         dep.removeSub(this)
       }
