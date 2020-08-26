@@ -169,6 +169,7 @@ export default class Watcher {
   /**
    * Add a dependency to this directive.
    */
+  // 互为添加watcher、dep
   addDep (dep: Dep) {
     const id = dep.id
     if (!this.newDepIds.has(id)) {
@@ -186,11 +187,15 @@ export default class Watcher {
    * Clean up for dependency collection.
    */
   // 清理依赖收集
+  // 作用如下：
+  // 1、同下面的第一点
+  // 2、解除dep在watcher.deps中的引用，让其能够被垃圾回收机制回收
+  // TODO 为啥每一次在watcher.get里，都要进行cleanupDeps()
   cleanupDeps () {
     let i = this.deps.length
     while (i--) {
       const dep = this.deps[i]
-      // 当前watcher不再订阅某属性的dep，则将watcher从该属性的dep.subs中移除，防止下一次被调用watcher.run
+      // 1、当前watcher不再订阅某属性的dep，则将watcher从该属性的dep.subs中移除，防止下一次被调用watcher.run
       if (!this.newDepIds.has(dep.id)) {
         dep.removeSub(this)
       }

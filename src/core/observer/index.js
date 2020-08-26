@@ -159,6 +159,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
 /**
  * Define a reactive property on an Object.
  * 定义响应式属性
+ * TODO 只将html上出现的data根属性定义为响应式属性，并将其加入到Vue的watcher.deps列表中
  */
 export function defineReactive (
   obj: Object,
@@ -168,6 +169,45 @@ export function defineReactive (
   shallow?: boolean
 ) {
   // 此dep用于对象的属性调用setter时，通知watch
+  /**
+   TODO 将obj对象整个替换掉，其各个属性的dep还会存在内存中么？会有内存泄漏的风险么？
+   let idx = 1;
+   const vm = new Vue({
+      data: {
+        obj: {
+          name: {
+            age: 1
+          },
+          test: 111
+        },
+        arr: []
+      },
+      template: `
+        <div>
+            <div>{{length}}, {{obj.name100}}</div><button @click="clear">clear</button>
+        </div>
+      `,
+      computed: {
+        length () {
+          return Object.keys(this.obj).length
+        }
+      },
+      methods: {
+        clear () {
+          this.obj = {};
+        },
+        fn () {
+          for (; idx < 3000; idx++) {
+            let key = `name${idx}`;
+            this.$set(this.obj, key, idx)
+          }
+        }
+      },
+      mounted () {
+        this.fn();
+      }
+    }).$mount('#app1')
+   */
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
@@ -198,6 +238,7 @@ export function defineReactive (
 
   // 递归监听对象或者数组类型的子元素
   let childOb = !shallow && observe(val)
+  // TODO 为什么只将options.data的根属性的dep加入到Vue的watcher.deps中，子属性（根属性为对象、数组则有子属性）不加入？
   // 将data的属性，转为访问器属性
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -205,6 +246,7 @@ export function defineReactive (
     get: function reactiveGetter () {
       const value = getter ? getter.call(obj) : val
       // TODO dep.depend()不应该是在get的时候都要执行吗？为什么是放到Dep.target条件中？
+      // TODO 只有在定义options.data根属性为响应式属性的时候，Dep.target才有值，非根属性的时候，Dep.target都是没有值的
       if (Dep.target) {
         // 当子属性的值整个发生变化时，通知watch
         dep.depend()
@@ -252,6 +294,7 @@ export function defineReactive (
         val = newVal
       }
       childOb = !shallow && observe(newVal)
+      // TODO options.data对象的每个属性的set函数中都有访问dep，如果重置对象为null，data对象每个属性的set函数会销毁么？
       dep.notify()
     }
   })
