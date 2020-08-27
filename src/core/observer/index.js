@@ -45,9 +45,7 @@ export class Observer {
 
   constructor (value: any) {
     this.value = value
-    // 这里的dep与defineReactive中的dep不同
-    // 此dep用于在对象或数组发生无法检测的变动时，通知watch
-    // TODO 在vue的set和delete操作中会利用上？
+    // 此dep专门用来在使用Vue.set()、Vue.delete()为数组、对象添加或删除属性时，将该变动通知Watcher
     this.dep = new Dep()
     this.vmCount = 0
     def(value, '__ob__', this)
@@ -150,6 +148,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
   ) {
     ob = new Observer(value)
   }
+  // TODO 分析一下vmCount的用处
   if (asRootData && ob) {
     ob.vmCount++
   }
@@ -161,6 +160,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
  * 定义响应式属性
  * TODO 只将html上出现的data根属性定义为响应式属性，并将其加入到Vue的watcher.deps列表中
  */
+// TODO 1、defineReactive函数用于将属性变成响应式属性，无论该属性是基本类型还是复杂类型。2、由于get\set无法检测数组、对象内部的变动，因此还需要用observe函数专门处理数组、对象内部的变动
 export function defineReactive (
   obj: Object,
   key: string,
@@ -262,6 +262,8 @@ export function defineReactive (
           // 有效：this.obj.a.b.c.d.e[0].push({g: 2});
           // 无效：this.$set(this.obj.a.b.c.d.e[0], 'g', 2);
           // 因此需要手动将watch添加到dep中
+
+          // TODO 将数组、对象上监控所有属性的总dep，与当前watcher互成依赖关系
           childOb.dep.depend()
           // 手动添加watch到dep
           if (Array.isArray(value)) {
