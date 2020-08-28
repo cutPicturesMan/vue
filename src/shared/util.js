@@ -41,6 +41,7 @@ export function isPrimitive (value: any): boolean %checks {
  * 快速对象检测，主要用于区别是对象（或数组），还是基本类型值
  * 待检测值的类型为符合JSON序列化的类型
  */
+// TODO Function也属于Object，分析下typeof Function为啥是function
 export function isObject (obj: mixed): boolean %checks {
   return obj !== null && typeof obj === 'object'
 }
@@ -72,8 +73,10 @@ export function isRegExp (v: any): boolean {
 
 /**
  * Check if val is a valid array index.
+ * 检查val是否是一个合法的数组序号
  */
 export function isValidArrayIndex (val: any): boolean {
+  // TODO
   const n = parseFloat(String(val))
   return n >= 0 && Math.floor(n) === n && isFinite(val)
 }

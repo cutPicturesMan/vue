@@ -148,7 +148,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
   ) {
     ob = new Observer(value)
   }
-  // TODO 分析一下vmCount的用处
+  // vmCount用来区分是否是为根data创建observe，这样可以在Vue.set为根data增加属性时进行提示
   if (asRootData && ob) {
     ob.vmCount++
   }
@@ -328,6 +328,7 @@ export function defineReactive (
  */
 export function set (target: Array<any> | Object, key: any, val: any): any {
   if (process.env.NODE_ENV !== 'production' &&
+    // Vue.set常用于Array、Object，也有可能用于Function，因此不能只限制为Array、Object，而要把不合法的值剔除
     (isUndef(target) || isPrimitive(target))
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
