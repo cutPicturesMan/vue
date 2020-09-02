@@ -73,11 +73,14 @@ export function isRegExp (v: any): boolean {
 
 /**
  * Check if val is a valid array index.
- * 检查val是否是一个合法的数组序号
+ * 检查val是否是一个合法的数组序号，来决定接下来走数组方式还是对象方式的observe
  */
 export function isValidArrayIndex (val: any): boolean {
-  // TODO
+  // 由于Symbol在隐式转换时会报错，因此要用String包一下
   const n = parseFloat(String(val))
+  // 合法的数组序号：范围在[0, 2³²-1]之间的有限整数：
+  // 1、val即使超过2³²-1的话，也是要走数组方式的（splice方法能够接受此参数），因此不需要校验
+  // 2、val如果是传入的+/-Infinity这种无限值，会通过校验，变成走数组方式了。但是我们认为用户是想要将其设置为数组上的属性的，因此使用isFinite()排除
   return n >= 0 && Math.floor(n) === n && isFinite(val)
 }
 

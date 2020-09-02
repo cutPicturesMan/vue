@@ -333,13 +333,25 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
   ) {
     warn(`Cannot set reactive property on undefined, null, or primitive value: ${(target: any)}`)
   }
-  // 数组采用异变方法进行值更新
+  // 对于数组类型：
+  // 1、如果key是合法的index，则用异变方法进行值更新
+  // 2、否则，用对象的方式将该key值写到数组上
   if (Array.isArray(target) && isValidArrayIndex(key)) {
     target.length = Math.max(target.length, key)
     target.splice(key, 1, val)
     return val
   }
-  // 已存在的对象属性，则直接更新
+  // target有可能是通过原型链继承来的，例如下面的age属性存在于原型链上
+  // 因此判断属性是否存在对象上时，要把原型链的查找也考虑进去，用in，并且排除掉Object的原型属性
+  /**
+   target = {
+      name: 'test',
+      __proto__: {
+         age: 1,
+         __proto__: Object
+      }
+   }
+   */
   if (key in target && !(key in Object.prototype)) {
     target[key] = val
     return val
@@ -358,12 +370,13 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     )
     return val
   }
-  // 该对象不是响应式对象，则直接添加属性
+  // 走对象方式添加属性
+  // 1、目标对象不是响应式对象，则直接添加属性
   if (!ob) {
     target[key] = val
     return val
   }
-  // 为响应式对象，添加新的属性
+  // 2、目标对象是响应式对象，则添加新的属性，并通知依赖
   defineReactive(ob.value, key, val)
   ob.dep.notify()
   return val
@@ -390,13 +403,16 @@ export function del (target: Array<any> | Object, key: any) {
     )
     return
   }
+  // delete操作只会在自身的属性上起作用，因此这里只要用hasOwnProperty判断就行
   if (!hasOwn(target, key)) {
     return
   }
   delete target[key]
+  // 普通对象/数组，则不通知依赖
   if (!ob) {
     return
   }
+  // 响应式对象/数组，则通知依赖
   ob.dep.notify()
 }
 
