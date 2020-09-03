@@ -4,8 +4,7 @@ import { extend } from 'shared/util'
 import { detectErrors } from './error-detector'
 import { createCompileToFunctionFn } from './to-function'
 
-// TODO 为了精简代码，createCompilerCreator函数采用闭包的方式，将共有的处理部分，放到了createCompiler之中
-// 讲解顺序为：闭包 -> 闭包例子 -> 这里这么写的原因
+// 由于web、server端的编译方式不同，因此将不同的编译部分用参数的形式传入
 export function createCompilerCreator (baseCompile: Function): Function {
   return function createCompiler (baseOptions: CompilerOptions) {
     function compile (

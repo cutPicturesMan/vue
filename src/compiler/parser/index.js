@@ -489,8 +489,10 @@ export function parse (
         if (whitespaceOption === 'condense') {
           // in condense mode, remove the whitespace node if it contains
           // line break, otherwise condense to a single space
+          // 压缩模式下，空白节点如果包含换行符，则直接移除，否则压缩为单个空格
           text = lineBreakRE.test(text) ? '' : ' '
         } else {
+          // 保留模式下，标签之间的纯空格节点会被压缩成单个空格，其余的空格保持不变
           text = ' '
         }
       } else {
