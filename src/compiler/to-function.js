@@ -9,6 +9,9 @@ type CompiledFunctionResult = {
   staticRenderFns: Array<Function>;
 };
 
+// 使用new Function()对表达式code求值
+// 有些环境，如 Google Chrome Apps，会强制应用内容安全策略 (CSP)，不能使用 new Function() 对表达式求值。这时可以用 CSP 兼容版本。完整版本依赖于该功能来编译模板，所以无法在这些环境下使用。
+// https://cn.vuejs.org/v2/guide/installation.html#CSP-%E7%8E%AF%E5%A2%83
 function createFunction (code, errors) {
   try {
     return new Function(code)
