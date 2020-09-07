@@ -65,6 +65,7 @@ const modifierRE = /\.[^.\]]+(?=[^\]]*$)/g
 // https://cn.vuejs.org/v2/guide/components-slots.html
 const slotRE = /^v-slot(:|$)|^#/
 
+// TODO 这里的换行为啥是\r\n，而不是\r?\n，是不是parse阶段的时候处理过了？
 const lineBreakRE = /[\r\n]/
 const whitespaceRE = /\s+/g
 

@@ -55,12 +55,12 @@ export function createCompileToFunctionFn (compile: Function): Function {
     }
 
     // check cache
+    // 由于相同模板的插入分隔符delimiters可能不同，因此要把delimiters带上，模板才是唯一的
     // https://cn.vuejs.org/v2/api/#delimiters
     const key = options.delimiters
       // 将delimiters数组转为逗号分隔的字符串的2种方法
       // 1、对象（包括数组）转为字符串的过程：如果值有valueOf()方法并且返回基本类型值，就使用该值进行强制类型转换；如果没有，就使用toString()的返回值来进行强制类型转换。数组的默认toString()方法经过了重新定义，将所有单元字符串化以后再用","连接起来
       // 2、[xxx].join(',')
-      // TODO delimiters是改变Vue默认的插值符号{{}}，为何这里要加上？
       ? String(options.delimiters) + template
       : template
     if (cache[key]) {
@@ -74,7 +74,9 @@ export function createCompileToFunctionFn (compile: Function): Function {
     // check compilation errors/tips
     // 检查编译是否出错/提示
     if (process.env.NODE_ENV !== 'production') {
+      // 编译有错误，则提示
       if (compiled.errors && compiled.errors.length) {
+        // 是否显示错误代码的开始结束区间
         if (options.outputSourceRange) {
           compiled.errors.forEach(e => {
             warn(

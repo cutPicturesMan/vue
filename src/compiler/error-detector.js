@@ -13,14 +13,18 @@ const prohibitedKeywordRE = new RegExp('\\b' + (
 ).split(',').join('\\b|\\b') + '\\b')
 
 // these unary operators should not be used as property/method names
+// 下述一元操作符不应该作为属性或方法的名称
+// TODO https://github.com/vuejs/vue/pull/5072
 const unaryOperatorsRE = new RegExp('\\b' + (
   'delete,typeof,void'
 ).split(',').join('\\s*\\([^\\)]*\\)|\\b') + '\\s*\\([^\\)]*\\)')
 
 // strip strings in expressions
+// 删除表达式中的字符串
 const stripStringRE = /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*\$\{|\}(?:[^`\\]|\\.)*`|`(?:[^`\\]|\\.)*`/g
 
 // detect problematic expressions in a template
+// 检测模板中有问题的表达式
 export function detectErrors (ast: ?ASTNode, warn: Function) {
   if (ast) {
     checkNode(ast, warn)
