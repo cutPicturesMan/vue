@@ -21,7 +21,11 @@ import { createCompilerCreator } from './create-compiler'
   -> update（更新页面）
   -> 渲染到页面？
 
-  TODO AST和VNode有啥差别
+  TODO AST和VNode有啥差别。这个等AST相关的文章实践完再回来看
+  TODO AST相关
+  https://segmentfault.com/a/1190000016231512
+  https://juejin.im/post/6844904035271573511
+  https://toutiao.io/posts/wyisbs/preview
  */
 export const createCompiler = createCompilerCreator(function baseCompile (
   template: string,

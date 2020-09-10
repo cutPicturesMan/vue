@@ -53,6 +53,12 @@ export function generate (
   const state = new CodegenState(options)
   const code = ast ? genElement(ast, state) : '_c("div")'
   // TODO 弄清动态、静态混合的html，是如何生成code的
+  // TODO with的用处：
+  // https://www.zhihu.com/question/49929356
+  // https://segmentfault.com/q/1010000018552495
+  // https://blog.csdn.net/zwkkkk1/article/details/79725934
+  // TODO 词法作用域
+  // https://blog.csdn.net/zwkkkk1/article/details/79725502
   return {
     render: `with(this){return ${code}}`,
     staticRenderFns: state.staticRenderFns
