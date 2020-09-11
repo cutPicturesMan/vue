@@ -25,7 +25,7 @@ const dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\
 // but for Vue templates we can enforce a simple charset
 // TODO 了解下xml标签规范
 // 匹配标签名，<my-component data-index=...中的my-component
-// 标签名：以字母、下划线开头，后跟任意多个的字符、中横线、和`.`
+// 标签名：以字母、下划线开头，后跟任意数量的中横线、`.`、0-9、下划线和字符
 const ncname = `[a-zA-Z_][\\-\\.0-9_a-zA-Z${unicodeRegExp.source}]*`
 const qnameCapture = `((?:${ncname}\\:)?${ncname})`
 const startTagOpen = new RegExp(`^<${qnameCapture}`)
@@ -104,10 +104,8 @@ export function parseHTML (html, options) {
   // 判断是否是自闭合标签的函数
   const canBeLeftOpenTag = options.canBeLeftOpenTag || no
   let index = 0
-  // 解析前的html字符串
-  let last,
-    // 最近解析过的双标签
-    lastTag
+  // 解析前的html字符串，最近解析过的双标签
+  let last, lastTag
   while (html) {
     last = html
     // Make sure we're not in a plaintext content element like script/style
@@ -191,8 +189,11 @@ export function parseHTML (html, options) {
           3) 标签均不属于注释、条件注释、doctype、结束、开始标签，如：<123
         2、直接进入此处if判断：test<123><div>
        */
+      // 1、处理非根节点部分
       if (textEnd >= 0) {
         // 将html截取到以"<"开头：<123><div>
+
+        // 将根节点标签及其子标签部分取出来
         rest = html.slice(textEnd)
 
         while (

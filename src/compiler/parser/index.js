@@ -176,8 +176,33 @@ export function parse (
   delimiters = options.delimiters
 
   const stack = []
-  // 编译html字符串时是否保留标签之间的空格
+  // 【不推荐使用】默认情况下（true），编译好的render函数会保留元素标签之间的所有空白字符。设为false，则会忽略所有标签之间的空白，这可能会影响到内联元素的布局
   const preserveWhitespace = options.preserveWhitespace !== false
+  /**
+   whitespace不会影响<pre>标签内的空白，取值有以下2种情况：
+   1、preserve：只处理元素标签之间的
+    1）如果元素标签之间只有纯空白文本节点，则将其压缩成一个空格
+    2）所有其他空白都按原样保留
+
+   2、condense：与纯HTML相比，在某些情况下该选项会造成一些视觉布局上的不同
+    1）如果元素标签之间的纯空白文本节点包含新行，则删除该节点；否则，将它压缩成一个单独的空格
+    2）非空白文本节点中的连续空白将被压缩成一个空格
+
+   <!-- source -->
+   <div>
+     <span>
+     foo
+     </span>   <span>bar</span>
+   </div>
+
+   <!-- whitespace: 'preserve' -->
+   <div> <span>
+     foo
+     </span> <span>bar</span> </div>
+
+   <!-- whitespace: 'condense' -->
+   <div><span> foo </span> <span>bar</span></div>
+   */
   const whitespaceOption = options.whitespace
   let root
   let currentParent
