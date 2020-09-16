@@ -66,6 +66,7 @@ const reCache = {}
  <a href="https://www.baidu.com&#9;">aaaa</a>
  <a href="https://www.baidu.com&#10;">aaaa</a>
  */
+// TODO decodingMap在react中2016年的时候换成了escapeHtml？弄清react中后来改用escapeHtml的原因：https://github.com/facebook/react/pull/6862
 const decodingMap = {
   '&lt;': '<',
   '&gt;': '>',
@@ -98,6 +99,7 @@ function decodeAttr (value, shouldDecodeNewlines) {
 export function parseHTML (html, options) {
   // 开始标签的数组列表，存储解析html字符串时遇到的开始标签
   const stack = []
+  // 是否是html，默认true，非web环境才是false
   const expectHTML = options.expectHTML
   // 判断是否是一元标签的函数
   const isUnaryTag = options.isUnaryTag || no
