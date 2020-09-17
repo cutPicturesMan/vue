@@ -19,6 +19,7 @@ import { unicodeRegExp } from 'core/util/lang'
 // 2、双引号：class="some-class"。"([^"]*)"+
 // 3、单引号：class='some-class'。'([^']*)'+
 // 4、不使用引号：class=some-class。([^\s"'=<>`]+)
+// TODO html属性规范中规定了attr的取值，vue并没有全部覆盖到？https://www.w3.org/TR/html4/intro/sgmltut.html#h-3.2.2
 const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
 const dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
 // could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
