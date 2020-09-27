@@ -22,6 +22,8 @@ export const canBeLeftOpenTag = makeMap(
 // TODO 验证下面缺少、应排除的标签是否正确，以及html5的标签嵌套规则
 // 缺少：main,menu,nav,ol,p,pre,section,table,ul ?
 // 应排除：menuitem,meta ?
+
+// http://blog.shaochuancs.com/w3c-html5-content-model/
 export const isNonPhrasingTag = makeMap(
   'address,article,aside,base,blockquote,body,caption,col,colgroup,dd,' +
   'details,dialog,div,dl,dt,fieldset,figcaption,figure,footer,form,' +
