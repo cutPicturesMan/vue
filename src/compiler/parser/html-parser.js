@@ -24,7 +24,6 @@ const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s
 const dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
 // could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
 // but for Vue templates we can enforce a simple charset
-// TODO 了解下xml标签规范
 // 匹配标签名，<my-component data-index=...中的my-component
 // 标签名：以字母、下划线开头，后跟任意数量的中横线、`.`、0-9、下划线和字符
 const ncname = `[a-zA-Z_][\\-\\.0-9_a-zA-Z${unicodeRegExp.source}]*`
@@ -36,22 +35,13 @@ const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`)
 // 匹配 <!DOCTYPE HTML>
 const doctype = /^<!DOCTYPE [^>]+>/i
 // #7298: escape - to avoid being passed as HTML comment when inlined in page
-// TODO https://github.com/vuejs/vue/issues/7298
-// TODO vue代码内联到html中长什么样？
+// 在安卓低端机（v4.4.2），通过将vue代码库内联到html中以减少请求，正则表达式/^<!--/会被认为是html注释<!--，导致后续代码不可用，因此加一个转义符号
 const comment = /^<!\--/
-// TODO 条件注释标签，如<!--[if IE 8]>...<![endif]-->
-// https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/compatibility/ms537512(v=vs.85)
-// https://zh.wikipedia.org/wiki/%E6%9D%A1%E4%BB%B6%E6%B3%A8%E9%87%8A
-// https://css-tricks.com/downlevel-hidden-downlevel-revealed/
-// 【Downlevel hidden】Show only in some subset of IE < 10's
-// 【Downlevel revealed】Show some subset of IE < 10's plus every non-IE browser.
+// 条件注释标签————下层展示标签
 const conditionalComment = /^<!\[/
 
-// TODO #8359
-// https://github.com/vuejs/vue/pull/8359
-// https://bugzilla.mozilla.org/show_bug.cgi?id=369778
-
 // Special Elements (can contain anything)
+// 特殊的标签（可以包含任何东西）
 export const isPlainTextElement = makeMap('script,style,textarea', true)
 // key: 纯文本标签；val: 正则
 const reCache = {}
@@ -98,7 +88,8 @@ function decodeAttr (value, shouldDecodeNewlines) {
  * @param options Object
  */
 export function parseHTML (html, options) {
-  // 开始标签的数组列表，存储解析html字符串时遇到的开始标签
+  // 存储解析html字符串时遇到的双标签的开始标签
+  // stack数组有值，则表示当前正处于解析双标签的内容中
   const stack = []
   // 是否是html，默认true，非web环境才是false
   const expectHTML = options.expectHTML
@@ -112,26 +103,23 @@ export function parseHTML (html, options) {
   while (html) {
     last = html
     // Make sure we're not in a plaintext content element like script/style
-    // 确保即将解析的内容不是纯文本
+    // 确保不解析script/style/textarea标签中的文本，因为它们可以包含任何东西
+    // 将下式看成!(lastTag && isPlainTextElement(lastTag))，lastTag有值，说明stack肯定有值，则表示正在解析标签中的文本
     if (!lastTag || !isPlainTextElement(lastTag)) {
+      // 直接判断html字符串的开头是文字还是疑似标签
       let textEnd = html.indexOf('<')
-      // 循环处理html以"<"开头的情况
       if (textEnd === 0) {
         // Comment:
         // 如果html以<!--开头
         if (comment.test(html)) {
           const commentEnd = html.indexOf('-->')
 
-          // 如果存在注释结尾标签，才会认为这是一个注释，并且剔除掉
-          // 由于commentEnd肯定比0大（当前的html以"<!--"开头）。这里的>=0是表示有找到commentEnd
           if (commentEnd >= 0) {
-            // 如果用户指定html中需要保留注释
             if (options.shouldKeepComment) {
-              options.comment(html.substring(4, commentEnd))
-              // 取到注释中的文字内容，传给options.comment函数。4表示注释开头为<!--的字符长度为4
+              // 将注释内容传给options.comment函数，4表示注释开头为<!--的字符长度为4
               options.comment(html.substring(4, commentEnd), index, index + commentEnd + 3)
             }
-            // 从html中剔除掉当前的注释字符串
+            // 从html字符串中删除当前注释标签
             advance(commentEnd + 3)
             continue
           } // 匹配不上注释标签，走接下来的流程
@@ -139,10 +127,7 @@ export function parseHTML (html, options) {
 
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
         // 如果html以<![开头
-        // Q vue把Downlevel-revealed条件注释去掉的原因？
-        // A Downlevel-revealed在vue中的范围为IE9、非IE浏览器，因此等于全显示，可以去掉
-        // TODO <![ 是错误语法，浏览器会将其解析为注释标签
-        // https://stackoverflow.com/questions/25067709/html-comment-behavior/25068759#25068759
+        // Vue不支持非标准的IE（微软）条件注释，Downlevel-hidden已经作为注释节点移除掉了，Downlevel-revealed在这里专门移除掉
         if (conditionalComment.test(html)) {
           const conditionalEnd = html.indexOf(']>')
 
@@ -162,7 +147,7 @@ export function parseHTML (html, options) {
         }
 
         // End tag:
-        // 跳过html字符串中的标签结束标签
+        // 跳过html字符串中标签的结束标签
         const endTagMatch = html.match(endTag)
         if (endTagMatch) {
           const curIndex = index
