@@ -47,6 +47,7 @@ export const isPlainTextElement = makeMap('script,style,textarea', true)
 const reCache = {}
 
 /**
+ * TODO chrome会将<a>标签的href属性进行编码，
  chrome下，当获取的innerHTML中含有<a>标签，且<a>标签的href属性中含有制表符，则此制表符会转为"&#9;"；如果含有换行符，会转为"&#10;"
  <div id="link-box">
      <a href="https://www.baidu.com	">aaaa</a>
@@ -170,38 +171,29 @@ export function parseHTML (html, options) {
       }
 
       let text, rest, next
-      /*
-        1、先进入textEnd === 0循环，后因不满足continue而进入此处if判断
-          1) 没有匹配到结尾标签的注释标签，如：<!--123...
-          2) 没有匹配到结尾标签的条件注释标签，如：<![123...
-          3) 标签均不属于注释、条件注释、doctype、结束、开始标签，如：<123
-        2、直接进入此处if判断：test<123><div>
-       */
-      // 1、处理非根节点部分
+      // 处理下一个疑似标签前的文本节点部分
       if (textEnd >= 0) {
-        // 将html截取到以"<"开头：<123><div>
-
-        // 将根节点标签及其子标签部分取出来
+        // 去除文本节点
         rest = html.slice(textEnd)
-
+        // 快速找到剩余以"<"开头的字符串中，"<"表示的是真正标签而不是字符的位置
         while (
           // 由于<!DOCTYPE>声明必须处于html文档的第一行，如果存在<!DOCTYPE>标签，那么在之前的if中已经被匹配了
-          // 此处即使存在<!DOCTYPE>，也是字符串形式
-          // 因此while中不需要再判断是否是doctype
+          // 此处即使存在<!DOCTYPE>，也是字符串形式，因此while中不需要再判断是否是doctype
           !endTag.test(rest) &&
           !startTagOpen.test(rest) &&
           !comment.test(rest) &&
           !conditionalComment.test(rest)
         ) {
           // < in plain text, be forgiving and treat it as text
-          // 跳过<123><div>开头的'<'，查找新的标签
+          // 查找下一个以"<"开头的疑似标签
           next = rest.indexOf('<', 1)
           // 如果接下来都没有标签了，则跳出while循环
           if (next < 0) break
-          // 光标定位到新标签的'<'上
+          // 光标定位到下一个的'<'上
           textEnd += next
           rest = html.slice(textEnd)
         }
+        // 文本节点内容
         text = html.substring(0, textEnd)
       }
 
@@ -210,25 +202,28 @@ export function parseHTML (html, options) {
         text = html
       }
 
-      // TODO 为何从while中移出
+      // 将文本节点从字符串中移除
       if (text) {
         advance(text.length)
       }
 
-      // 存储字符
+      // 将文本节点传入options.chars回调函数中
       if (options.chars && text) {
         options.chars(text, index - text.length, index)
       }
     } else {
-      // 上一个解析的标签有值 && 上一个解析的标签属于纯文本标签
+      // 将<script>、<style>、<textarea>标签的内容直到结束标签都替换为空字符串，并在最后将其开始标签出栈
       let endTagLength = 0
       const stackedTag = lastTag.toLowerCase()
       // 匹配纯文本标签的内容以及结束标签
-      // 这里要注意下，由于正则表达式总是会寻找字符串中第一个可能匹配的位置，而不会考虑匹配更短的情况，([\\s\\S]*?)会匹配纯文本标签的全部内容而不是只有内容的最后一个字符
+      // ([\\s\\S]*?)为惰性匹配，如果有多个形如结束标签的字符串，则匹配第一个
       const reStackedTag = reCache[stackedTag] || (reCache[stackedTag] = new RegExp('([\\s\\S]*?)(</' + stackedTag + '[^>]*>)', 'i'))
       const rest = html.replace(reStackedTag, function (all, text, endTag) {
         endTagLength = endTag.length
+        // TODO 这个if判断应该永远进不来
         if (!isPlainTextElement(stackedTag) && stackedTag !== 'noscript') {
+          // 将标签内的注释部分提取出来，放入chars回调函数
+          // 这里有可能是多行匹配，因此要用\s\S，而不能是.*
           text = text
             .replace(/<!\--([\s\S]*?)-->/g, '$1') // #7298
             .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, '$1')
@@ -246,6 +241,7 @@ export function parseHTML (html, options) {
       parseEndTag(stackedTag, index - endTagLength, index)
     }
 
+    // 经过上述流程之后，如果前后字符串没变，则表示解析失败，字符串不是合法的html字符串
     if (html === last) {
       options.chars && options.chars(html)
       if (process.env.NODE_ENV !== 'production' && !stack.length && options.warn) {
@@ -258,15 +254,14 @@ export function parseHTML (html, options) {
   // Clean up any remaining tags
   parseEndTag()
 
-  // 截取html字符串
+  // 向前移动n个字符串
   function advance (n) {
     index += n
     html = html.substring(n)
   }
 
-  // 解析开始标签
-  // 只有完整的解析了一个标签字符串，才会返回该标签字符串的对象形式
-  // 否则没有返回值
+  // 解析开始标签及其属性
+  // 有结束符号`>`的开始标签，才会返回其对象表示形式，否则没有返回值
   function parseStartTag () {
     // 假设标签为<my-component data-index="1"></my-component>
     const start = html.match(startTagOpen)
@@ -288,7 +283,7 @@ export function parseHTML (html, options) {
         match.attrs.push(attr)
       }
       if (end) {
-        // 如果开始标签含有斜杠，则unarySlash为斜杠"/"；如果没有，则为undefined
+        // 如果开始标签为一元标签，则unarySlash为斜杠"/"，否则为undefined
         match.unarySlash = end[1]
         // 将index移动到闭合之后
         advance(end[0].length)
@@ -306,18 +301,17 @@ export function parseHTML (html, options) {
 
     if (expectHTML) {
       // 由于p标签只能包含短语标签
-      // 父级是p标签 && 标签本身不是短语类型，这违反了html中的嵌套规则，需要闭合父级标签
-      // <p><div>123</div></p> => <p></p><div>123</div></p>
+      // 目前正在解析p标签的内容 && 当前标签本身不是短语类型，这违反了html中的嵌套规则，需要闭合父级标签
       if (lastTag === 'p' && isNonPhrasingTag(tagName)) {
         parseEndTag(lastTag)
       }
-      // <ul><li>1<li>2</ul>
+      // 自闭合标签 && 当前正在解析这个标签，则手动闭合
       if (canBeLeftOpenTag(tagName) && lastTag === tagName) {
         parseEndTag(tagName)
       }
     }
 
-    // 用指定方法判断开始标签是否是一元标签 || 开始标签是否含有斜杠"/"
+    // 是否是html规范定义的一元标签 || 以斜杠"/"结尾的自定义一元标签
     const unary = isUnaryTag(tagName) || !!unarySlash
 
     const l = match.attrs.length
