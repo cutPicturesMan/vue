@@ -231,15 +231,16 @@ export function getBindingAttr (
   const dynamicValue =
     getAndRemoveAttr(el, ':' + name) ||
     getAndRemoveAttr(el, 'v-bind:' + name)
-  // 如果存在这个指令（无论有没有赋值），则进入此分支
+  // 如果存在这个指令（只要存在肯定就是字符串，无论dom中是否有赋值），则进入此分支
   // <div :list="arrList"></div>
   // <div :list></div>
   if (dynamicValue != null) {
     // 解析指令值包含的过滤器
     return parseFilters(dynamicValue)
   } else if (getStatic !== false) {
+    // 不存在动态指令，但是可以尝试获取其静态属性，则进入此分支
+    // TODO 全局搜了一下，没有看到getStatic为true的情况，应该不会进来这个分支
     const staticValue = getAndRemoveAttr(el, name)
-    // TODO 待验证
     // 静态属性和动态属性公用一套处理方法
     // 由于动态属性值会当作js的值处理，如果静态属性有值并直接返回，也会被当作js的值处理
     // 因此这里要用JSON.stringify处理为字符串
@@ -254,7 +255,7 @@ export function getBindingAttr (
 // By default it does NOT remove it from the map (attrsMap) because the map is
 // needed during codegen.
 /**
- 获取并返回el.attrsMap上的某个指令的值，同时将其从el.attrsList中移除，避免该属性值被processAttrs函数处理
+ 获取并返回el.attrsMap上的某个指令的值，同时将其从el.attrsList中移除（避免该属性值被processAttrs函数处理）
 
  el = {
   type: 1,
@@ -269,10 +270,6 @@ export function getBindingAttr (
     'v-if': 'display'
   }
 }
- * @param el
- * @param name
- * @param removeFromMap
- * @returns {*}
  */
 export function getAndRemoveAttr (
   el: ASTElement,
@@ -280,6 +277,8 @@ export function getAndRemoveAttr (
   removeFromMap?: boolean
 ): ?string {
   let val
+  // 指定属性存在于el.attrsMap中（避免属性已经从el.attrsMap中移除，又要进入el.attrsList的for循环），则从el.attrsList中删除该属性
+  // el.attrsMap[name]有值的话，肯定是字符串，不会为null/undefined的，只有属性被删除了才会是null/undefined
   if ((val = el.attrsMap[name]) != null) {
     const list = el.attrsList
     for (let i = 0, l = list.length; i < l; i++) {

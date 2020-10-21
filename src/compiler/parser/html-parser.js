@@ -47,16 +47,14 @@ export const isPlainTextElement = makeMap('script,style,textarea', true)
 const reCache = {}
 
 /**
- * TODO chrome会将<a>标签的href属性进行编码，
- chrome下，当获取的innerHTML中含有<a>标签，且<a>标签的href属性中含有制表符，则此制表符会转为"&#9;"；如果含有换行符，会转为"&#10;"
- <div id="link-box">
-     <a href="https://www.baidu.com	">aaaa</a>
-     <a href="https://www.baidu.com
+ chrome会将<a>标签的href属性进行编码，导致访问的链接出错，例如：
+ 1、制表符被转为"&#9;"  
+    <a href="https://www.baidu.com	">aaaa</a> 
+    <a href="https://www.baidu.com&#9;">aaaa</a>
+ 2、换行符被转为"&#10;"
+    <a href="https://www.baidu.com
      ">aaaa</a>
- </div>
-
- <a href="https://www.baidu.com&#9;">aaaa</a>
- <a href="https://www.baidu.com&#10;">aaaa</a>
+    <a href="https://www.baidu.com&#10;">aaaa</a>
  */
 // TODO decodingMap在react中2016年的时候换成了escapeHtml？弄清react中后来改用escapeHtml的原因：https://github.com/facebook/react/pull/6862
 const decodingMap = {
@@ -73,7 +71,6 @@ const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#39|#10|#9);/g
 
 // #5992 https://github.com/vuejs/vue/issues/5992
 // 紧跟在<pre>开始标签后的换行符会被省略，vue原本不会省略，这里处理下
-// TODO 是在ssr渲染的时候会出现这种情况，还是客户端渲染的时候会出现？
 const isIgnoreNewlineTag = makeMap('pre,textarea', true)
 const shouldIgnoreFirstNewline = (tag, html) => tag && isIgnoreNewlineTag(tag) && html[0] === '\n'
 
@@ -315,14 +312,13 @@ export function parseHTML (html, options) {
     const unary = isUnaryTag(tagName) || !!unarySlash
 
     const l = match.attrs.length
-    // TODO 验证下：不用map函数，而用new Array是为了避免IE下svg的bug？
+    // 不用map函数，而用new Array是为了避免IE下svg的bug，具体就不深究了
     const attrs = new Array(l)
     for (let i = 0; i < l; i++) {
       const args = match.attrs[i]
       // 属性的值
       const value = args[3] || args[4] || args[5] || ''
-      // 指定是否要解码，如解码制表符：&#9; => \t
-      // TODO 这样处理有什么用，或者说为的是什么?
+      // 将属性值中被编码的html字符实体转为预留字符
       const shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
         ? options.shouldDecodeNewlinesForHref
         : options.shouldDecodeNewlines
@@ -355,7 +351,7 @@ export function parseHTML (html, options) {
     if (end == null) end = index
 
     // Find the closest opened tag of the same type
-    // 查找该结束标签在stack数组中对应的最近的开始标签
+    // 在stack数组中，从后往前找到最接近的标签。如果没找到，pos为-1
     if (tagName) {
       lowerCasedTagName = tagName.toLowerCase()
       for (pos = stack.length - 1; pos >= 0; pos--) {
@@ -373,9 +369,7 @@ export function parseHTML (html, options) {
       // Close all the open elements, up the stack
       // 将当前标签及其子标签一一关闭
       for (let i = stack.length - 1; i >= pos; i--) {
-        // 假设标签为<ul><li>1<li>2</ul>
-        // 当匹配到结束标签</ul>时，此时stack为[{tagName: 'ul'}, {tagName: 'li'}]
-        // stack数组中多了一个未闭合的标签li，会进入此逻辑进行提示
+        // 子标签没闭合 || tagName没值（即最后的清空stack操作），则提示未匹配到结束标签
         if (process.env.NODE_ENV !== 'production' &&
           (i > pos || !tagName) &&
           options.warn
@@ -397,7 +391,6 @@ export function parseHTML (html, options) {
       lastTag = pos && stack[pos - 1].tag
     } else if (lowerCasedTagName === 'br') {
       // 如果html中仅写了</br>，那么浏览器会将其渲染为<br>，这里vue保持一致
-      // TODO 了解下只存在结束标签时，浏览器的渲染结果
       if (options.start) {
         options.start(tagName, [], true, start, end)
       }

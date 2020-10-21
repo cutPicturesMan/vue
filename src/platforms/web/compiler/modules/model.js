@@ -33,7 +33,7 @@ function preTransformNode (el: ASTElement, options: CompilerOptions) {
     }
 
     let typeBinding
-    // 如果使用了<input :type="inputType"/> 或 <input v-bind:type="inputType"/>来绑定type值
+    // 如果动态绑定的type属性有值，则调用getBindingAttr()获取其值（为的是将type从el.attrsList中移除）
     if (map[':type'] || map['v-bind:type']) {
       typeBinding = getBindingAttr(el, 'type')
     }

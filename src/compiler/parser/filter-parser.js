@@ -12,10 +12,9 @@ const validDivisionCharRE = /[\w).+\-_$\]]/
  1、单引号内的管道符：<div :id="'rawId | formatId'"></div>
  2、双引号内的管道符：<div :id='"rawId | formatId"'></div>
  3、模板字符串内的管道符：<div :id="`rawId | formatId`"></div>
- 4、由于识别"/"是除号还是正则比较复杂，vue中仅进行简要识别（http://www.ecma-international.org/ecma-262/9.0/index.html#sec-ecmascript-language-lexical-grammar）
+ 4、正则表达式内的管道符：<div :id="/rawId|formatId/.test(id).toString()"></div>
+    由于识别"/"是除号还是正则比较复杂，vue中仅进行简要识别（http://www.ecma-international.org/ecma-262/9.0/index.html#sec-ecmascript-language-lexical-grammar）
     TODO ASI自动插入分号机制
-    正则表达式内的管道符：<div :id="/rawId|formatId/.test(id).toString()"></div>
-
  5、逻辑或运算（两个"|"组成）内的管道符：<div :id="rawId || formatId"></div>
  * @param exp 字符串形式：rawId | formatId
  * @returns {*}
@@ -25,43 +24,41 @@ export function parseFilters (exp: string): string {
   let inDouble = false
   let inTemplateString = false
   let inRegex = false
-  // 只要curly、square、paren有一个不为0，即表示当前字符串被{}、[]、()其中之一包裹，不会将"|"解析为分隔符
-  // 遇到"{"加1，遇到"}"减1
+  // 只要curly、square、paren有一个不为0，即当前字符串被{}、[]、()其中之一包裹，不会将"|"解析为分隔符
+  // curly：遇到"{"加1，遇到"}"减1
+  // square：遇到"["加1，遇到"]"减1
+  // paren：遇到"("加1，遇到")"减1
   let curly = 0
-  // 遇到"["加1，遇到"]"减1
   let square = 0
-  // 遇到"("加1，遇到")"减1
   let paren = 0
   let lastFilterIndex = 0
   let c, prev, i, expression, filters
 
-  // 正常的指令，如<div :id="rawId | formatId"></div>，会进入到第4个else if分支中
+  // 循环解析属性值字符串中的每一个字符，判断是普通字符还是过滤器。如<div :id="rawId | formatId"></div>
   for (i = 0; i < exp.length; i++) {
+    // 上一个字符串
     prev = c
-    // TODO 为什么判断的时候不用字符串直接判断，而要用charCodeAt
     c = exp.charCodeAt(i)
+    // 处在'(0x27)、"(0x22)、`(0x60)、/(0x2f)的包裹中，则直接忽略其中的字符串，不进行解析
+    // 由于'"`/不像{[(可以多个嵌套，因此要单独拎出来判断
+    // 0x5C -> \
     if (inSingle) {
-      // 0x27 -> '
-      // 0x5C -> \
-      // 由单引号包裹的字符，统统跳过
       // 当前字符是真正的单引号，而不是转义的单引号时，表示由单引号包裹的字符串结束了
       if (c === 0x27 && prev !== 0x5C) inSingle = false
     } else if (inDouble) {
-      // 0x22 -> "
       if (c === 0x22 && prev !== 0x5C) inDouble = false
     } else if (inTemplateString) {
-      // 0x60 -> `
       if (c === 0x60 && prev !== 0x5C) inTemplateString = false
     } else if (inRegex) {
-      // 0x2f -> /
       if (c === 0x2f && prev !== 0x5C) inRegex = false
     } else if (
+      // 如果当前字符为过滤器的分隔符"|"，则分离出表达式和过滤器
       // 0x7C -> |
-      // 认为当前字符为过滤器分隔符的条件：
-      // 1、当前字符为"|" &&
-      // 2、当前字符后一个字符不为"|" &&
-      // 3、当前字符前一个字符不为"|" &&
-      // 4、当前字符不处于{}、[]、()包裹中
+
+      // 当前字符为"|" &&
+      // 当前字符后一个字符不为"|" &&
+      // 当前字符前一个字符不为"|" &&
+      // 当前字符不处于{}、[]、()包裹中
       c === 0x7C && // pipe
       exp.charCodeAt(i + 1) !== 0x7C &&
       exp.charCodeAt(i - 1) !== 0x7C &&
@@ -70,9 +67,10 @@ export function parseFilters (exp: string): string {
       if (expression === undefined) {
         // first filter, end of expression
         lastFilterIndex = i + 1
-        // 'rawId | formatId' -> 'rawId'
+        // 'rawId | formatId' -> 'rawId ' -> 'rawId'
         expression = exp.slice(0, i).trim()
       } else {
+        // 每次匹配到过滤器分隔符"|"，将上一次的过滤器（两个"|"的边界才能确定）放入filters数组中
         pushFilter()
       }
     } else {
@@ -88,6 +86,7 @@ export function parseFilters (exp: string): string {
         case 0x7D: curly--; break                 // }
       }
       // 判断"/"是除号，还是正则表达式
+      // TODO 有空再看
       if (c === 0x2f) { // /
         let j = i - 1
         let p
@@ -112,9 +111,11 @@ export function parseFilters (exp: string): string {
     }
   }
 
+  // 字符串中没有匹配到过滤器，则全部的字符串都是表达式
   if (expression === undefined) {
     expression = exp.slice(0, i).trim()
   } else if (lastFilterIndex !== 0) {
+    // 如果匹配到了过滤器，则把最后一个匹配到的过滤器加入filters数组中
     pushFilter()
   }
 

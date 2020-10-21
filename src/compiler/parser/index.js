@@ -336,7 +336,7 @@ export function parse (
     start (tag, attrs, unary, start, end) {
       // check namespace.
       // inherit parent ns if there is one
-      // platformGetTagNamespace 函数只会获取 svg 和 math 这两个标签的命名空间
+      // 获取标签命名空间，platformGetTagNamespace()只会获取svg和math这两个标签的命名空间
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
 
       // handle IE svg bug
@@ -347,21 +347,19 @@ export function parse (
        svg标签在IE下被渲染成
        <svg xmlns:NS1="" NS1:xmlns:feature="http://www.openplans.org/topp"></svg>
        需要移除'xmlns:NS1="" NS1:' 这段字符串
-       attrs = [
-       {
+       attrs = [{
          name: 'xmlns:NS1',
          value: ''
-       },
-       {
+       }, {
          name: 'NS1:xmlns:feature',
          value: 'http://www.openplans.org/topp'
-       }
-       ]
+       }]
        */
       if (isIE && ns === 'svg') {
         attrs = guardIESVGBug(attrs)
       }
 
+      // 为当前开始标签创建一个AST描述对象
       let element: ASTElement = createASTElement(tag, attrs, currentParent)
       if (ns) {
         element.ns = ns
@@ -376,6 +374,7 @@ export function parse (
             return cumulated
           }, {})
         }
+        // 检查并警告非法的动态参数表达式
         attrs.forEach(attr => {
           if (invalidAttributeRE.test(attr.name)) {
             warn(
@@ -402,6 +401,7 @@ export function parse (
       }
 
       // apply pre-transforms
+      // 预处理
       for (let i = 0; i < preTransforms.length; i++) {
         element = preTransforms[i](element, options) || element
       }
