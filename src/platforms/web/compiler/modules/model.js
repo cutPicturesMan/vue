@@ -2,7 +2,7 @@
 
 /**
  * v-model不支持动态的input[types]属性，input[type]属性改变时，不会更新dom，因此要改为v-if使其支持动态type
- * TODO 为何改为v-if时要改成3种情况，直接v-if + v-else触发dom修改不行么？
+ * TODO 为何v-if要单独列出checkbox、radio的情况，直接v-if + v-else触发dom修改不行么？
  * TODO 等更新dom流程熟悉了再回来看https://stackoverflow.com/questions/44461188/vue2-v-model-does-not-support-dynamic-input-types
  * Expand input[v-model] with dynamic type bindings into v-if-else chains
  * Turn this:

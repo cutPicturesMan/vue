@@ -33,6 +33,7 @@ export const dirRE = process.env.VBIND_PROP_SHORTHAND
 // 匹配v-for="item of list"，并提取字符串item、list
 // v-for是可以分成多行写的，[^]、[\s\S]都表示匹配任何字符（包括换行符），但是[^]IE不支持，会匹配到空值，因此使用[\s\S]
 // http://sjhannah.com/blog/2011/05/17/javascript-matching-all-characters-including-new-line/
+// 匹配item字符串时，要用惰性匹配`[\s\S]*?`，不能用贪婪匹配。例如匹配`for key in [{body: 'Hey in body'}]`，如果用贪婪匹配，最后一个匹配组会匹配到`body'}]`而不是`[{body: 'Hey in body'}]`
 export const forAliasRE = /([\s\S]*?)\s+(?:in|of)\s+([\s\S]*)/
 // support array and nested destructuring in v-for
 /**
@@ -401,7 +402,7 @@ export function parse (
       }
 
       // apply pre-transforms
-      // 预处理
+      // 预处理（目前只处理了v-model指令）
       for (let i = 0; i < preTransforms.length; i++) {
         element = preTransforms[i](element, options) || element
       }
@@ -424,6 +425,7 @@ export function parse (
         processRawAttrs(element)
       } else if (!element.processed) {
         // structural directives
+        // 处理结构上的指令
         processFor(element)
         processIf(element)
         processOnce(element)
@@ -724,7 +726,7 @@ type ForParseResult = {
 export function parseFor (exp: string): ?ForParseResult {
   // "item in list" => ["item in list", "item", "list"]
   const inMatch = exp.match(forAliasRE)
-  // 没有匹配到，inMatch返回null
+  // 没有匹配到，inMatch为null
   if (!inMatch) return
   const res = {}
   res.for = inMatch[2].trim()
