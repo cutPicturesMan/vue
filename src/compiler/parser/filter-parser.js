@@ -8,7 +8,7 @@ const validDivisionCharRE = /[\w).+\-_$\]]/
  由于按位或运算符与分隔符相同，均为"|"，在过滤器中"|"仅代表分隔符
  如果一定要使用按位或运算符，可以在计算属性中处理
 
- 以下五种情况，不应该将"|"作为过滤器进行解析
+ 以下六种情况，不应该将"|"作为过滤器进行解析
  1、单引号内的管道符：<div :id="'rawId | formatId'"></div>
  2、双引号内的管道符：<div :id='"rawId | formatId"'></div>
  3、模板字符串内的管道符：<div :id="`rawId | formatId`"></div>
@@ -16,6 +16,7 @@ const validDivisionCharRE = /[\w).+\-_$\]]/
     由于识别"/"是除号还是正则比较复杂，vue中仅进行简要识别（http://www.ecma-international.org/ecma-262/9.0/index.html#sec-ecmascript-language-lexical-grammar）
     TODO ASI自动插入分号机制
  5、逻辑或运算（两个"|"组成）内的管道符：<div :id="rawId || formatId"></div>
+ 6、"|"处在{}、[]、()的包裹中
  * @param exp 字符串形式：rawId | formatId
  * @returns {*}
  */
@@ -125,6 +126,7 @@ export function parseFilters (exp: string): string {
     lastFilterIndex = i + 1
   }
 
+  // 将表达式用过滤器函数层层包裹
   if (filters) {
     for (i = 0; i < filters.length; i++) {
       expression = wrapFilter(expression, filters[i])
@@ -135,24 +137,26 @@ export function parseFilters (exp: string): string {
 }
 
 /**
+ 拼接filter和expression
  处理2种情况
  1、不带参数的filter
  <div>{{ message | filterA }}</div>
 
  2、带参数、带空参数的filter
- <div>{{ message | filterA('arg1', arg2) }}</div>
+ <div>{{ message | filterA(arg1, arg2) }}</div>
  <div>{{ message | filterA() }}</div>
  */
 function wrapFilter (exp: string, filter: string): string {
   const i = filter.indexOf('(')
+  // 不带参数的filter
   if (i < 0) {
     // _f: resolveFilter
     return `_f("${filter}")(${exp})`
   } else {
-
     const name = filter.slice(0, i)
     const args = filter.slice(i + 1)
-    // '_f("filter")(message, 'arg1', arg2)'
+    // '_f("filter")(message, arg1, arg2)'
+    // _f("filter")是找到名为filter的函数，然后再执行
     return `_f("${name}")(${exp}${args !== ')' ? ',' + args : args}`
   }
 }

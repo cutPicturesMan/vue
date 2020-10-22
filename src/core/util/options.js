@@ -634,31 +634,12 @@ export function mergeOptions (
  * to assets defined in its ancestor chain.
  */
 /**
+ 在局部、全局上依次查找指定资源
  先查找局部的资源（components/directives/filters）
 
  先查找options.components本身上的组件声明，即局部声明的组件
- 没有找到的话，再通过原型链查找全局声明的组件
-
- 1、局部声明组件
- <template>
-   <div>
-    <my-component></my-component>
-   </div>
- </template>
-
- <script>
- import myComponent from './myComponent.vue'
-
- export default {
-   components: {
-     myComponent
-   }
- }
- </script>
-
- 2、全局声明的组件
-   当全局声明的组件名称与局部声明的完全一样时，在没找到局部my-component的情况下，不转而查找其驼峰式myComponent，而是先查找相同的组件名称时，会找到全局组件上，导致局部组件完全不会初始化
- Vue.component('my-component', {...})
+ 如果没找到，不会直接通过原型链向上查找全局的声明，而是会在局部组件中查找其驼峰式声明（增加容错性、代码编写的方便性）
+ 实在没有找到的话，再通过原型链查找全局声明的组件
  */
 export function resolveAsset (
   options: Object,
