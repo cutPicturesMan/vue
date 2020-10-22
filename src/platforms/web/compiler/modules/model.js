@@ -1,7 +1,9 @@
 /* @flow */
 
 /**
- * TODO 为何要将使用了v-model、动态绑定type属性的input标签，处理为3种情况
+ * v-model不支持动态的input[types]属性，input[type]属性改变时，不会更新dom，因此要改为v-if使其支持动态type
+ * TODO 为何改为v-if时要改成3种情况，直接v-if + v-else触发dom修改不行么？
+ * TODO 等更新dom流程熟悉了再回来看https://stackoverflow.com/questions/44461188/vue2-v-model-does-not-support-dynamic-input-types
  * Expand input[v-model] with dynamic type bindings into v-if-else chains
  * Turn this:
  *   <input v-model="data[type]" :type="type">
@@ -33,13 +35,14 @@ function preTransformNode (el: ASTElement, options: CompilerOptions) {
     }
 
     let typeBinding
-    // 如果动态绑定的type属性有值，则调用getBindingAttr()获取其值（为的是将type从el.attrsList中移除）
+    // 如果动态绑定的type属性有值，则获取其值
     if (map[':type'] || map['v-bind:type']) {
+      // 其实可以直接用map[:type]获取具体值，调用getBindingAttr()为的是将type从el.attrsList中移除
       typeBinding = getBindingAttr(el, 'type')
     }
     // 没有使用type="text"，也没有使用:type="inputType"、v-bind:type="inputType"来绑定type属性，但是使用了<input v-bind="{ type: inputType }" />这种形式来绑定数据
+    // 由于map['v-bind']中不一定有type属性，因此要排除type="text"的情况，防止type被覆盖
     if (!map.type && !typeBinding && map['v-bind']) {
-      // 等同于typeBinding = `({ type: inputType }).type`
       typeBinding = `(${map['v-bind']}).type`
     }
 
@@ -105,7 +108,6 @@ function preTransformNode (el: ASTElement, options: CompilerOptions) {
 }
 
 function cloneASTElement (el) {
-  // TODO slice不能进行深复制，如果改了el.attrsList中的对象的属性怎么办？
   return createASTElement(el.tag, el.attrsList.slice(), el.parent)
 }
 
