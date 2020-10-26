@@ -229,6 +229,7 @@ export function parse (
           block: element
         })
       } else if (process.env.NODE_ENV !== 'production') {
+        // 如果是没有使用v-if指令的多个根节点，则提示
         warnOnce(
           `Component template should contain exactly one root element. ` +
           `If you are using v-if on multiple elements, ` +
@@ -239,7 +240,7 @@ export function parse (
     }
     if (currentParent && !element.forbidden) {
       if (element.elseif || element.else) {
-        // 如果根元素由v-if、v-else-if、v-else组成，则将v-else-if、v-else元素添加到v-if元素的ifConditions数组中
+        // 将v-else-if、v-else元素的ast添加到v-if元素的ifConditions数组中，而不是添加到父级ast的children中
         processIfConditions(element, currentParent)
       } else {
         if (element.slotScope) {
@@ -747,9 +748,10 @@ function processIf (el) {
   }
 }
 
+// 将v-else-if、v-else的ast添加到v-if的ifConditions数组中
 function processIfConditions (el, parent) {
   const prev = findPrevElement(parent.children)
-  // 如果前一个同级元素使用了v-if，则将当前元素的描述对象，添加到前一个元素的ifConditions数组中
+  // 前一个同级元素使用了v-if
   if (prev && prev.if) {
     addIfCondition(prev, {
       exp: el.elseif,
@@ -766,6 +768,8 @@ function processIfConditions (el, parent) {
 }
 
 /**
+ * 查找父级ast的children数组中最后一个标签节点（即为当前解析标签的前一个标签）
+ * 当解析到span标签时，children数组最后一个元素节点还是div，因为p标签的ast并没有被添加到父级ast的children上
  <div>
    <div v-if="a"></div>
    aaaaa
@@ -773,8 +777,6 @@ function processIfConditions (el, parent) {
    bbbbb
    <span v-else="c"></span>
  </div>
-
- TODO：验证下当解析到span标签时，children数组最后一个元素节点还是div
  */
 function findPrevElement (children: Array<any>): ASTElement | void {
   let i = children.length
@@ -782,7 +784,7 @@ function findPrevElement (children: Array<any>): ASTElement | void {
     if (children[i].type === 1) {
       return children[i]
     } else {
-      // 当前一个节点是文本节点时，将其排除
+      // 前一个节点是非空白的文本节点，将其排除（v-if系列指令的节点之间不能存在其他节点）
       if (process.env.NODE_ENV !== 'production' && children[i].text !== ' ') {
         warn(
           `text "${children[i].text.trim()}" between v-if and v-else(-if) ` +
