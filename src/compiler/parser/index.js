@@ -36,19 +36,10 @@ export const dirRE = process.env.VBIND_PROP_SHORTHAND
 // 匹配item字符串时，要用惰性匹配`[\s\S]*?`，不能用贪婪匹配。例如匹配`for key in [{body: 'Hey in body'}]`，如果用贪婪匹配，最后一个匹配组会匹配到`body'}]`而不是`[{body: 'Hey in body'}]`
 export const forAliasRE = /([\s\S]*?)\s+(?:in|of)\s+([\s\S]*)/
 // support array and nested destructuring in v-for
-/**
- * 匹配v-for的第二个和第三个参数
- * v-for有三种语法：
- 1、第一个参数item支持对象解构赋值、数组解构赋值、数组嵌套解构赋值
-  1.1、v-for="item of list"
-  1.2、v-for="{name, age} of list", list=[{name: 'z', age: 26}, {name: 'x', age: 27}, ]
-  1.3、v-for="[{name}, age] of list", list=[[{name: 'z'}, 26], [{name: 'x'}, 27]]
- 2、循环数组时，第二个参数为序号；循环对象时，第二个参数为key值，第三个参数为序号
-   2.1、v-for="(item, index) of list"
-   2.2、v-for="(item, key, index) of obj"
- */
+// 匹配v-for参数部分的3个参数。第一个参数可能存在解构赋值的情况，由于只有数组、对象才能进行解构赋值，因此匹配到结尾都不能出现"}"、"]"这两个符号
+// 例如：<li v-for="([ foo, bar, baz ], i) in items"></li>
 export const forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/
-// 匹配以"("开头、或者以")"结尾、或者兼具两者的字符串
+// 匹配以"("开头、或者以")"结尾的字符串
 const stripParensRE = /^\(|\)$/g
 // 匹配动态参数，<a v-on:[eventName]="doSomething"> ... </a>
 // https://cn.vuejs.org/v2/guide/syntax.html#动态参数
@@ -225,11 +216,10 @@ export function parse (
       element = processElement(element, options)
     }
     // tree management
-    // 当stack.length为0时，即一个根节点及其子元素全部处理完毕
-    // 这时如果有同级的根节点，就会进入此流程
+    // stack.length为0，表示不处于任何标签内，那么当前肯定在处理根节点 && 当前节点不是根节点，则是根节点的同级节点
     if (!stack.length && element !== root) {
       // allow root elements with v-if, v-else-if and v-else
-      // v-if条件显示某个根节点
+      // 允许使用v-if的情况下存在多个根节点
       if (root.if && (element.elseif || element.else)) {
         if (process.env.NODE_ENV !== 'production') {
           checkRootConstraints(element)
@@ -282,12 +272,13 @@ export function parse (
       inPre = false
     }
     // apply post-transforms
+    // weex中使用的后置处理
     for (let i = 0; i < postTransforms.length; i++) {
       postTransforms[i](element, options)
     }
   }
 
-  // 移除当前元素最后一个空白子节点
+  // 如果当前元素最后一个子节点是空白节点，则移除
   // <div><span>test</span>     <!-- 空白占位 -->     </div>
   function trimEndingWhitespace (el) {
     // remove trailing whitespace node
@@ -303,11 +294,10 @@ export function parse (
     }
   }
 
-  // 检测模板根元素是否符合要求（有且只有一个根元素）
-  // slot插槽的内容是由外界决定的，有可能渲染多个节点
-  // template作为抽象组件，不会渲染任何内容到页面，但是可能包含多个子节点
-  // v-for指令会渲染多个节点
+  // 检测模板根元素是否有且只有一个根元素
   function checkRootConstraints (el) {
+    // slot插槽的内容是由外界决定的，有可能渲染多个节点
+    // template作为抽象组件，不会渲染任何内容到页面，但是可能包含多个子节点
     if (el.tag === 'slot' || el.tag === 'template') {
       warnOnce(
         `Cannot use <${el.tag}> as component root element because it may ` +
@@ -315,6 +305,7 @@ export function parse (
         { start: el.start }
       )
     }
+    // v-for指令会渲染多个节点
     if (el.attrsMap.hasOwnProperty('v-for')) {
       warnOnce(
         'Cannot use v-for on stateful component root element because ' +
@@ -653,7 +644,6 @@ export function processElement (
   return element
 }
 
-// TODO
 function processKey (el) {
   const exp = getBindingAttr(el, 'key')
   if (exp) {
@@ -712,25 +702,16 @@ type ForParseResult = {
   iterator2?: string;
 };
 
-/**
- * <div v-for="item in list"></div>
- * @param exp 表示v-for的值，如"item in list"
- * @returns {} or undefined
- * {
- *  for: "list",
- *  alias: "item"/"item, index"/"item, key, index",
- *  iterator1: 没有此字段/"index"/"key",
- *  iterator2: 没有此字段/没有此字段/"index"
- * }
- */
+// <li v-for="([ foo, bar, baz ], i) in items"></li>
+// exp表示v-for的值，如"([ foo, bar, baz ], i) in items"
 export function parseFor (exp: string): ?ForParseResult {
-  // "item in list" => ["item in list", "item", "list"]
+  // 将参数部分与列表部分分开："item in list" => ["item in list", "item", "list"]
   const inMatch = exp.match(forAliasRE)
   // 没有匹配到，inMatch为null
   if (!inMatch) return
   const res = {}
   res.for = inMatch[2].trim()
-  // 将" (item, key, index)"处理为"item, key, index"
+  // 去掉参数部分的左右空白和括号：" (item, key, index)" => "item, key, index"
   const alias = inMatch[1].trim().replace(stripParensRE, '')
   // "item, key, index" => [", key, index", " key", " index" ]
   const iteratorMatch = alias.match(forIteratorRE)
@@ -746,6 +727,7 @@ export function parseFor (exp: string): ?ForParseResult {
   return res
 }
 
+// 将v-if、v-else-if、v-else指令添加到ast上
 function processIf (el) {
   const exp = getAndRemoveAttr(el, 'v-if')
   if (exp) {
@@ -755,7 +737,6 @@ function processIf (el) {
       block: el
     })
   } else {
-    // TODO v-else和v-else-if为什么不分开处理，意味着可以在同一个标签上同时出现v-else和v-else-if？
     if (getAndRemoveAttr(el, 'v-else') != null) {
       el.else = true
     }
@@ -1171,7 +1152,7 @@ function processAttrs (el) {
   }
 }
 
-// 判断当前元素是否有v-for指令，或在v-for指令包裹之中
+// 判断当前元素及其父级是否有v-for指令
 function checkInFor (el: ASTElement): boolean {
   let parent = el
   while (parent) {

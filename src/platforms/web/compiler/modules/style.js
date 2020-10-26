@@ -8,6 +8,7 @@ import {
   baseWarn
 } from 'compiler/helpers'
 
+// 为ast添加静态、动态style属性
 function transformNode (el: ASTElement, options: CompilerOptions) {
   const warn = options.warn || baseWarn
   const staticStyle = getAndRemoveAttr(el, 'style')
