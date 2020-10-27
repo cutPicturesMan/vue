@@ -7,8 +7,7 @@ import { parseFilters } from './filter-parser'
 const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
 const regexEscapeRE = /[-.*+?^${}()|[\]\/\\]/g
  
-// 由于需要通过new RegExp()构建新的正则表达式，因此需要为自定义的定界符添加转义符号"\"
-// ${xxx} -> \$\{xxx\}
+// 匹配字面量表达式自定义分隔符中的文字
 const buildRegex = cached(delimiters => {
   const open = delimiters[0].replace(regexEscapeRE, '\\$&')
   const close = delimiters[1].replace(regexEscapeRE, '\\$&')
@@ -57,8 +56,7 @@ export function parseText (
    ]
    tokens = [
       "'abc'",
-      TODO _s和_f什么时候存在？
-      "_f(formatDate)(date)",
+      "_s(_f(formatDate)(date))",
       "'def'"
    ]
    */
@@ -81,7 +79,7 @@ export function parseText (
     tokens.push(JSON.stringify(tokenValue))
   }
   return {
-    // "'abc'+_f('formatDate')(date)+'def'"
+    // "'abc'+_s(_f('formatDate')(date))+'def'"
     expression: tokens.join('+'),
     // 供weex使用
     tokens: rawTokens
