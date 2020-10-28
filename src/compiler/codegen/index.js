@@ -10,6 +10,7 @@ type TransformFunction = (el: ASTElement, code: string) => string;
 type DataGenFunction = (el: ASTElement) => string;
 type DirectiveFunction = (el: ASTElement, dir: ASTDirective, warn: Function) => boolean;
 
+// 创建记录代码生成状态的对象
 export class CodegenState {
   options: CompilerOptions;
   warn: Function;
@@ -65,14 +66,9 @@ export function generate (
   }
 }
 
-// 生成创建节点的字符串
-/**
- * _c 创建节点【/src/core/instance/render.js】
- * 其余参考 【/src/core/instance/render-helpers/index.js】
- * @param el
- * @param state
- * @returns {*}
- */
+// 循环调用本函数，将ast树转为创建节点的字符串
+// _c 创建节点【/src/core/instance/render.js】
+// 其余参考 【/src/core/instance/render-helpers/index.js】
 export function genElement (el: ASTElement, state: CodegenState): string {
   // 当前标签有可能处于v-pre包裹下，因此当标签有父级的情况下，以父级的pre为准
   // https://github.com/vuejs/vue/issues/8286
@@ -80,6 +76,7 @@ export function genElement (el: ASTElement, state: CodegenState): string {
     el.pre = el.pre || el.parent.pre
   }
 
+  // 按照固定顺序处理ast上的指令，处理完成后再调用本函数genElement继续处理接下来的指令，直到处理el.children
   if (el.staticRoot && !el.staticProcessed) {
     return genStatic(el, state)
   } else if (el.once && !el.onceProcessed) {
@@ -133,17 +130,17 @@ function genStatic (el: ASTElement, state: CodegenState): string {
   // node.  All pre nodes are static roots, so we can use this as a location to
   // wrap a state change and reset it upon exiting the pre node.
   // 在<pre>标签中，<template>应该像平常一样渲染，而不是被过滤掉
+  // 所有的pre节点都是静态根节点，所以可以将此作为位置，去包裹状态改变，并在退出pre节点时重置它
   // TODO 目前的bug：当v-pre指令出现在根节点时，<template>正常渲染；当v-pre出现在非根节点时，<template>被过滤了
   // https://github.com/vuejs/vue/issues/10717
   // https://github.com/vuejs/vue/issues/8041
-  // 所有的pre节点都是静态根节点，所以可以将此作为位置，去包裹状态改变，并在退出pre节点时重置它
   const originalPreState = state.pre
   if (el.pre) {
     state.pre = el.pre
   }
   state.staticRenderFns.push(`with(this){return ${genElement(el, state)}}`)
   state.pre = originalPreState
-  // TODO 形如_m(0)是什么意思？
+  // 返回形如"_m(0)"或"_m(1, true)"
   return `_m(${
     state.staticRenderFns.length - 1
   }${
@@ -152,14 +149,17 @@ function genStatic (el: ASTElement, state: CodegenState): string {
 }
 
 // v-once
+// 处理v-once指令
 function genOnce (el: ASTElement, state: CodegenState): string {
   el.onceProcessed = true
-  // 如果是未处理过的v-if，则处理
+  // 如果同时带有v-if指令，则先处理v-if指令
   if (el.if && !el.ifProcessed) {
     return genIf(el, state)
   } else if (el.staticInFor) {
+    // v-for下的v-once标签，由于其解析一次之后便不再更新，这里用_o()处理一次之后，实际上就相当于静态标签
     let key = ''
     let parent = el.parent
+    // 找到父级含有v-for指令的标签
     while (parent) {
       if (parent.for) {
         key = parent.key
@@ -235,6 +235,7 @@ export function genFor (
   const iterator1 = el.iterator1 ? `,${el.iterator1}` : ''
   const iterator2 = el.iterator2 ? `,${el.iterator2}` : ''
 
+  // 带v-for指令的组件必须有明确的key值
   if (process.env.NODE_ENV !== 'production' &&
     state.maybeComponent(el) &&
     el.tag !== 'slot' &&

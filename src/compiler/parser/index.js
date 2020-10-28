@@ -171,6 +171,7 @@ export function parse (
   // 【不推荐使用】默认情况下（true），编译好的render函数会保留元素标签之间的所有空白字符。设为false，则会忽略所有标签之间的空白，这可能会影响到内联元素的布局
   const preserveWhitespace = options.preserveWhitespace !== false
   /**
+   https://github.com/vuejs/vue/issues/9208#issuecomment-450012518
    whitespace不会影响<pre>标签内的空白，取值有以下2种情况：
    1、preserve：只处理元素标签之间的
     1）如果元素标签之间只有纯空白文本节点，则将其压缩成一个空格
@@ -441,7 +442,6 @@ export function parse (
     // 每次遇到结束标签时调用
     end (tag, start, end) {
       const element = stack[stack.length - 1]
-      // TODO https://github.com/vuejs/vue/issues/9208
       // pop stack
       // 移除当前节点
       stack.length -= 1
@@ -456,13 +456,14 @@ export function parse (
       // 当前是根节点（没有父节点）
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
-          // 根节点都是文字的情况
+          // 1、单一根节点：根节点都是文字
           if (text === template) {
             warnOnce(
               'Component template requires a root element, rather than just text.',
               { start }
             )
           } else if ((text = text.trim())) {
+            // 2、多个同级根节点：
             // text<root>主内容</root>text
             warnOnce(
               `text "${text}" outside root element will be ignored.`,
@@ -492,8 +493,8 @@ export function parse (
         return
       }
       const children = currentParent.children
-      // <pre>标签中的处理方式，与正常文本节点相同
-      // else if 处理不在<pre>标签中的空格字符
+      // 文本节点处于<pre>标签中 || 文本节点不在<pre>中，但是有值
+      // 剩余的if分支处理不在<pre>标签中的空格字符
       if (inPre || text.trim()) {
         // 1、在html中，某些字符是预留字符，如"<"、">"，直接使用会被浏览器误认为是标签。如果希望正确地显示预留字符，需要使用字符实体。最后浏览器将其渲染为字符节点"<"、">"
         //    "&lt;div&gt;&lt;/div&gt;" -> "<div></div>"
@@ -505,7 +506,6 @@ export function parse (
         // 如果当前文本节点的父节点没有子元素，则不保留空格
         text = ''
       } else if (whitespaceOption) {
-        // TODO https://github.com/vuejs/vue/issues/9208
         if (whitespaceOption === 'condense') {
           // in condense mode, remove the whitespace node if it contains
           // line break, otherwise condense to a single space
@@ -518,20 +518,17 @@ export function parse (
       } else {
         text = preserveWhitespace ? ' ' : ''
       }
-      // 1、真正的文本节点
-      // 2、空格字符：
-      //    1）whitespaceOption选项为"condense"，且文本节点没有换行
-      //    2）whitespaceOption选项不为"condense"
-      //    3）preserveWhitespace选项为true
+      // 文本节点有值 || 空白节点被处理成单个空格
       if (text) {
-        // TODO
         if (!inPre && whitespaceOption === 'condense') {
           // condense consecutive whitespaces into single space
+          // 如果不处于<pre>中的文本节点中存在多个连续空格，则压缩为1个
           text = text.replace(whitespaceRE, ' ')
         }
         let res
         let child: ?ASTNode
-        // 解析包含字面量表达式的文本节点：<div>我的名字是：{{ name }}</div>
+        // 1、文本节点包含字面量表达式的情况：不在<pre>中 && 节点有值且不为空格 && 节点匹配到了字面量表达式
+        // <div>我的名字是：{{ name }}</div>
         if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) {
           child = {
             type: 2,
@@ -540,7 +537,7 @@ export function parse (
             text
           }
         } else if (text !== ' ' || !children.length || children[children.length - 1].text !== ' ') {
-          // TODO 分析else if的情况
+          // 2、文本节点为纯文本的情况：节点有值且不为空格 || 该节点为空格，但是没有同级 || 该节点为空格，前一个相邻节点不为空格
           child = {
             type: 3,
             text
@@ -560,7 +557,7 @@ export function parse (
       // adding anyting as a sibling to the root node is forbidden
       // comments should still be allowed, but ignored
       // https://github.com/vuejs/vue/issues/9407
-      // 忽略根节点的注释
+      // 只解析以根节点为父级包裹下的注释节点，忽略根节点同级的注释节点
       if (currentParent) {
         const child: ASTText = {
           type: 3,

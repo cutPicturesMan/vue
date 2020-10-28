@@ -5,6 +5,7 @@ import { makeMap, isBuiltInTag, cached, no } from 'shared/util'
 let isStaticKey
 let isPlatformReservedTag
 
+// genStaticKeysCached(str)返回一个函数，该函数用来判断传入的参数str是否是静态节点的属性
 const genStaticKeysCached = cached(genStaticKeys)
 
 /**
@@ -18,7 +19,7 @@ const genStaticKeysCached = cached(genStaticKeys)
  *    create fresh nodes for them on each re-render;
  * 2. Completely skip them in the patching process.
  *
- * 优化器目标：遍历生成的模板ast树，查找纯静态子树。即一部分dom永远不需要改变
+ * 优化器目标：遍历ast树，查找纯静态子树。即一部分dom永远不需要改变
  *
  * 一旦找这些静态子树，我们可以：
  * 1、将静态子树提升为常量，这样我们就不再需要在每一个重新渲染中为其创建刷新节点
@@ -38,8 +39,7 @@ export function optimize (root: ?ASTElement, options: CompilerOptions) {
   markStaticRoots(root, false)
 }
 
-// 静态节点拥有的所有静态属性
-// TODO 分析下为何是这些属性
+// 返回一个函数，该函数用来判断传入的参数是否是静态节点的属性
 function genStaticKeys (keys: string): Function {
   return makeMap(
     'type,tag,attrsList,attrsMap,plain,parent,children,attrs,start,end,rawAttrsMap' +
@@ -95,7 +95,7 @@ function markStatic (node: ASTNode) {
         node.static = false
       }
     }
-    // node.ifConditions包含同级节点，每个同级节点还有可能包含子元素，需要进行优化
+    // 为v-else-if、v-else节点添加静态标记
     if (node.ifConditions) {
       // 循环除了if之外的条件判断
       for (let i = 1, l = node.ifConditions.length; i < l; i++) {
@@ -171,7 +171,6 @@ function isStatic (node: ASTNode): boolean {
     !isBuiltInTag(node.tag) && // not a built-in
     // 是html标签 || svg标签
     // 即isReservedTag函数，src/platforms/web/util/element.js
-    // TODO 如果可以确定是html或者svg标签，为何还要进行isBuiltInTag()判断？
     isPlatformReservedTag(node.tag) && // not a component
     // 不是<template v-for>标签的直接子元素
     !isDirectChildOfTemplateFor(node) &&
