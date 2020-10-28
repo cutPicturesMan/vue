@@ -95,7 +95,7 @@ function markStatic (node: ASTNode) {
         node.static = false
       }
     }
-    // node.ifConditions包含同级节点，每个同级节点还有可能包含子元素，需要进行优化
+    // 为v-else-if、v-else节点添加静态标记
     if (node.ifConditions) {
       // 循环除了if之外的条件判断
       for (let i = 1, l = node.ifConditions.length; i < l; i++) {
