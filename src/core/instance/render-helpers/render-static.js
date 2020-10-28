@@ -13,7 +13,9 @@ export function renderStatic (
   // if has already-rendered static tree and not inside v-for,
   // we can reuse the same tree.
   // 如果已经渲染了静态树，并且该静态树不处于v-for中，则可以重用相同的树
-  // TODO 为什么处于v-for中静态树不能重用？https://github.com/vuejs/vue/issues/7292
+  // 如果是静态节点或v-once节点，需要判断是否处在v-for循环中，防止重用导致问题
+  // TODO patch看完再回来解决这个问题：https://github.com/vuejs/vue/issues/3406
+  // test/unit/modules/vdom/patch/edge-cases.spec.js
   if (tree && !isInFor) {
     return tree
   }
