@@ -167,6 +167,8 @@ function genOnce (el: ASTElement, state: CodegenState): string {
       }
       parent = parent.parent
     }
+    // v-for中的v-once必须要有唯一key，否则标签每次都会解析
+    // TODO 为啥v-for要有唯一key，v-once才会只渲染一次？是因为dom重用？回顾一遍patch再回来看
     if (!key) {
       process.env.NODE_ENV !== 'production' && state.warn(
         `v-once can only be used inside v-for that is keyed. `,
@@ -174,6 +176,7 @@ function genOnce (el: ASTElement, state: CodegenState): string {
       )
       return genElement(el, state)
     }
+    // 这里为何不用genStatic?
     return `_o(${genElement(el, state)},${state.onceId++},${key})`
   } else {
     return genStatic(el, state)
@@ -186,11 +189,13 @@ export function genIf (
   altGen?: Function,
   altEmpty?: string
 ): string {
-  // 由于v-if的el.ifConditions数组中，第一项就是自身，这里添加标识防止递归处理
+  // 将本指令标识为已处理，防止处理当前标签上的其他指令时，又进入本指令的处理
   el.ifProcessed = true // avoid recursion
+  // genIfConditions函数中会删除el.ifConditions数组的第一项，因此要另外复制出来一个
   return genIfConditions(el.ifConditions.slice(), state, altGen, altEmpty)
 }
 
+// 将v-if指令的所有条件转成嵌套的三元表达式字符形式
 function genIfConditions (
   conditions: ASTIfConditions,
   state: CodegenState,
@@ -203,11 +208,12 @@ function genIfConditions (
 
   // 取出第一个条件
   const condition = conditions.shift()
-  // 第一个条件的内容
+  // 将第一个条件转成三元表达式字符
   if (condition.exp) {
     return `(${condition.exp})?${
       genTernaryExp(condition.block)
     }:${
+      // 循环剩余的v-if条件
       genIfConditions(conditions, state, altGen, altEmpty)
     }`
   } else {
@@ -215,6 +221,7 @@ function genIfConditions (
   }
 
   // v-if with v-once should generate code like (a)?_m(0):_m(1)
+  // 标签同时含有v-once、v-if指令，先解析v-if，再解析v-once
   function genTernaryExp (el) {
     return altGen
       ? altGen(el, state)
@@ -235,7 +242,8 @@ export function genFor (
   const iterator1 = el.iterator1 ? `,${el.iterator1}` : ''
   const iterator2 = el.iterator2 ? `,${el.iterator2}` : ''
 
-  // 带v-for指令的组件必须有明确的key值
+  // 带v-for指令的组件必须指定明确的key值
+  // TODO 看完patch回归下为啥要明确key值
   if (process.env.NODE_ENV !== 'production' &&
     state.maybeComponent(el) &&
     el.tag !== 'slot' &&
@@ -252,6 +260,7 @@ export function genFor (
   }
 
   el.forProcessed = true // avoid recursion
+  // TODO 这里是如何由字符串变成函数的？
   return `${altHelper || '_l'}((${exp}),` +
     `function(${alias}${iterator1}${iterator2}){` +
       `return ${(altGen || genElement)(el, state)}` +

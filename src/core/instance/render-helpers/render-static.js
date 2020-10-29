@@ -59,6 +59,7 @@ function markStatic (
   }
 }
 
+// TODO patch回归下这个函数
 function markStaticNode (node, key, isOnce) {
   node.isStatic = true
   node.key = key
