@@ -582,6 +582,7 @@ function processPre (el) {
 }
 
 // 将pre标签及其子标签，对应的el.attrsList数组的值，同步一份到el.attr上
+// TODO 为啥要同步一份到el.attr上？
 function processRawAttrs (el) {
   const list = el.attrsList
   const len = list.length

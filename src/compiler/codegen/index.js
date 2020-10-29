@@ -25,6 +25,7 @@ export class CodegenState {
   constructor (options: CompilerOptions) {
     this.options = options
     this.warn = options.warn || baseWarn
+    // 在测试文件中才存在transformCode函数，其他地方没看到
     this.transforms = pluckModuleFunction(options.modules, 'transformCode')
     this.dataGenFns = pluckModuleFunction(options.modules, 'genData')
     this.directives = extend(extend({}, baseDirectives), options.directives)
@@ -98,14 +99,12 @@ export function genElement (el: ASTElement, state: CodegenState): string {
     } else {
       // 处理标签
       let data
-      // 有属性的标签。肯定要渲染对应的data
-      // 没属性的标签。
-      // 如果是普通的没属性标签，直接忽略genData，正常渲染即可
-      // 但如果是pre包裹下的自定义组件，不能跳过genData，因为需要生成{pre: true}来阻止其解析为组件
+      // 为以下2种标签生成属性：有属性的标签 || pre包裹下的自定义组件（需要生成{pre: true}属性来阻止其解析为组件）
       if (!el.plain || (el.pre && state.maybeComponent(el))) {
         data = genData(el, state)
       }
 
+      // inlineTemplate为true，组件将会使用包裹的内容作为模板，而不是将其作为被分发的内容
       const children = el.inlineTemplate ? null : genChildren(el, state, true)
       code = `_c('${el.tag}'${
         data ? `,${data}` : '' // data
@@ -273,6 +272,7 @@ export function genData (el: ASTElement, state: CodegenState): string {
 
   // directives first.
   // directives may mutate the el's other properties before they are generated.
+  // 先处理指令，因为在其他属性生成前，指令有可能改变它们
   const dirs = genDirectives(el, state)
   if (dirs) data += dirs + ','
 
@@ -292,10 +292,12 @@ export function genData (el: ASTElement, state: CodegenState): string {
     data += `pre:true,`
   }
   // record original tag name for components using "is" attribute
+  // 记录使用了"is"属性的组件的原始标签名称
   if (el.component) {
     data += `tag:"${el.tag}",`
   }
   // module data generation functions
+  // 调用模块的data生成函数，即生成class、style对应的动、静态属性
   for (let i = 0; i < state.dataGenFns.length; i++) {
     data += state.dataGenFns[i](el)
   }
@@ -357,7 +359,7 @@ export function genData (el: ASTElement, state: CodegenState): string {
   }
   return data
 }
-
+// 处理指令
 function genDirectives (el: ASTElement, state: CodegenState): string | void {
   const dirs = el.directives
   if (!dirs) return
