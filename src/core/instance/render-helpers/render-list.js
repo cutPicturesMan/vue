@@ -30,7 +30,6 @@ export function renderList (
   } else if (isObject(val)) {
     // 待循环的是对象
     // 1、对象key值为Symbol
-    // TODO 晚上回去补充
     if (hasSymbol && val[Symbol.iterator]) {
       ret = []
       const iterator: Iterator<any> = val[Symbol.iterator]()
