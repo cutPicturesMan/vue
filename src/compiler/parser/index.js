@@ -993,6 +993,7 @@ function processComponent (el) {
    slot、slot-scope、scope、name
    is、inline-template
  */
+// TODO 这块有空再看下
 function processAttrs (el) {
   const list = el.attrsList
   let i, l, name, rawName, value, modifiers, syncGen, isDynamic

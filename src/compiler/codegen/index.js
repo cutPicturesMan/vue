@@ -58,9 +58,8 @@ export function generate (
   // TODO with的用处：
   // https://www.zhihu.com/question/49929356
   // https://segmentfault.com/q/1010000018552495
-  // https://blog.csdn.net/zwkkkk1/article/details/79725934
-  // TODO 词法作用域
-  // https://blog.csdn.net/zwkkkk1/article/details/79725502
+  // 高性能Javascript/2、数据存取.md
+  // You Don't Know JS/1、scope & closures.md
   return {
     render: `with(this){return ${code}}`,
     staticRenderFns: state.staticRenderFns
